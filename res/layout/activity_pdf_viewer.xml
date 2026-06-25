@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout android:id="@id/parentLayout" android:layout_width="match_parent" android:layout_height="match_parent"
+  xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
+    <com.google.android.material.appbar.MaterialToolbar android:id="@id/my_toolbar" android:background="?colorPrimary" android:visibility="gone" android:layout_width="match_parent" android:layout_height="?actionBarSize" app:layout_constraintTop_toTopOf="parent" app:layout_scrollFlags="scroll|enterAlways" app:navigationIcon="@drawable/pdf_viewer_ic_arrow_back">
+        <TextView android:gravity="center_vertical" android:id="@id/toolbar_title" android:layout_width="match_parent" android:layout_height="wrap_content" />
+    </com.google.android.material.appbar.MaterialToolbar>
+    <FrameLayout android:id="@id/mainLayout" android:layout_width="match_parent" android:layout_height="0.0dp" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintTop_toBottomOf="@id/my_toolbar">
+        <ProgressBar android:layout_gravity="center" android:id="@id/progressBar" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:indeterminateDrawable="@drawable/pdf_viewer_progress_circle" android:interpolator="@android:anim/accelerate_decelerate_interpolator" />
+        <com.rajat.pdfviewer.PdfRendererView android:id="@id/pdfView" android:layout_width="match_parent" android:layout_height="match_parent" app:pdfView_divider="@drawable/pdf_viewer_divider" app:pdfView_showDivider="false" />
+    </FrameLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

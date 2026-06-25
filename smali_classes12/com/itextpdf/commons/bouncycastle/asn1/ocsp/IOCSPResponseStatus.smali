@@ -1,0 +1,11 @@
+.class public interface abstract Lcom/itextpdf/commons/bouncycastle/asn1/ocsp/IOCSPResponseStatus;
+.super Ljava/lang/Object;
+.source "IOCSPResponseStatus.java"
+
+# interfaces
+.implements Lcom/itextpdf/commons/bouncycastle/asn1/IASN1Encodable;
+
+
+# virtual methods
+.method public abstract getSuccessful()I
+.end method
