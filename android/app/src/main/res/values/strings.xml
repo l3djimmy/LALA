@@ -1,0 +1,37 @@
+<resources>
+    <string name="app_name">LALA</string>
+    <string name="timeline">Timeline</string>
+    <string name="map_view">Map View</string>
+    <string name="media_gallery">Media Gallery</string>
+    <string name="reports">Reports</string>
+    <string name="settings">Settings</string>
+    <string name="new_entry">New Entry</string>
+    <string name="edit_entry">Edit Entry</string>
+    <string name="export_pdf">Export PDF</string>
+    <string name="export_csv">Export CSV</string>
+    <string name="delete">Delete</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="search">Search</string>
+    <string name="category">Category</string>
+    <string name="comment">Comment</string>
+    <string name="location">Location</string>
+    <string name="date_time">Date / Time</string>
+    <string name="tags">Tags</string>
+    <string name="photos">Photos</string>
+    <string name="video">Video</string>
+    <string name="geotag">Geotag</string>
+    <string name="add_photo">Add Photo</string>
+    <string name="add_video">Add Video</string>
+    <string name="filmstrip">Filmstrip</string>
+    <string name="frame_rate">Frame Rate</string>
+    <string name="preview_report">Preview Report</string>
+    <string name="custom_categories">Custom Categories</string>
+    <string name="appearance">Appearance</string>
+    <string name="font_size">Font Size</string>
+    <string name="accent_color">Accent Color</string>
+    <string name="theme">Theme</string>
+    <string name="data_management">Data Management</string>
+    <string name="import_data">Import Data</string>
+    <string name="export_all_data">Export All Data</string>
+</resources>
