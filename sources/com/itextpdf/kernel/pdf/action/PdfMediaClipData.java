@@ -1,0 +1,39 @@
+package com.itextpdf.kernel.pdf.action;
+
+import com.itextpdf.commons.utils.MessageFormatUtil;
+import com.itextpdf.kernel.pdf.PdfDictionary;
+import com.itextpdf.kernel.pdf.PdfName;
+import com.itextpdf.kernel.pdf.PdfObjectWrapper;
+import com.itextpdf.kernel.pdf.PdfString;
+import com.itextpdf.kernel.pdf.filespec.PdfFileSpec;
+/* loaded from: classes12.dex */
+public class PdfMediaClipData extends PdfObjectWrapper<PdfDictionary> {
+    private static final PdfString TEMPACCESS = new PdfString("TEMPACCESS");
+
+    public PdfMediaClipData(PdfDictionary pdfObject) {
+        super(pdfObject);
+    }
+
+    public PdfMediaClipData(String file, PdfFileSpec fs, String mimeType) {
+        this(new PdfDictionary());
+        PdfDictionary dic = new PdfDictionary();
+        markObjectAsIndirect(dic);
+        dic.put(PdfName.TF, TEMPACCESS);
+        getPdfObject().put(PdfName.Type, PdfName.MediaClip);
+        getPdfObject().put(PdfName.S, PdfName.MCD);
+        getPdfObject().put(PdfName.N, new PdfString(MessageFormatUtil.format("Media clip for {0}", file)));
+        getPdfObject().put(PdfName.CT, new PdfString(mimeType));
+        getPdfObject().put(PdfName.P, dic);
+        getPdfObject().put(PdfName.D, fs.getPdfObject());
+    }
+
+    @Override // com.itextpdf.kernel.pdf.PdfObjectWrapper
+    public void flush() {
+        super.flush();
+    }
+
+    @Override // com.itextpdf.kernel.pdf.PdfObjectWrapper
+    protected boolean isWrappedObjectMustBeIndirect() {
+        return true;
+    }
+}

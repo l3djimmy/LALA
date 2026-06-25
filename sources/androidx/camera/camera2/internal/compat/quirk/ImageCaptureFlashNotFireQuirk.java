@@ -1,0 +1,20 @@
+package androidx.camera.camera2.internal.compat.quirk;
+
+import android.hardware.camera2.CameraCharacteristics;
+import android.os.Build;
+import androidx.camera.camera2.internal.compat.CameraCharacteristicsCompat;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+/* loaded from: classes.dex */
+public class ImageCaptureFlashNotFireQuirk implements UseTorchAsFlashQuirk {
+    private static final List<String> BUILD_MODELS = Arrays.asList("itel w6004");
+    private static final List<String> BUILD_MODELS_FRONT_CAMERA = Arrays.asList("sm-j700f", "sm-j710f");
+
+    /* JADX INFO: Access modifiers changed from: package-private */
+    public static boolean load(CameraCharacteristicsCompat cameraCharacteristics) {
+        boolean isFrontCameraAffected = BUILD_MODELS_FRONT_CAMERA.contains(Build.MODEL.toLowerCase(Locale.US)) && ((Integer) cameraCharacteristics.get(CameraCharacteristics.LENS_FACING)).intValue() == 0;
+        boolean isAffected = BUILD_MODELS.contains(Build.MODEL.toLowerCase(Locale.US));
+        return isFrontCameraAffected || isAffected;
+    }
+}

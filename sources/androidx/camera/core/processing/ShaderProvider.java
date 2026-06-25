@@ -1,0 +1,10 @@
+package androidx.camera.core.processing;
+/* loaded from: classes.dex */
+public interface ShaderProvider {
+    public static final ShaderProvider DEFAULT = new ShaderProvider() { // from class: androidx.camera.core.processing.ShaderProvider.1
+    };
+
+    default String createFragmentShader(String samplerVarName, String fragCoordsVarName) {
+        return null;
+    }
+}

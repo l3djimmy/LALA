@@ -1,0 +1,86 @@
+package androidx.activity.compose;
+
+import androidx.activity.result.ActivityResultRegistry;
+import androidx.activity.result.ActivityResultRegistryOwner;
+import androidx.activity.result.contract.ActivityResultContract;
+import androidx.compose.runtime.Composer;
+import androidx.compose.runtime.ComposerKt;
+import androidx.compose.runtime.EffectsKt;
+import androidx.compose.runtime.SnapshotStateKt;
+import androidx.compose.runtime.State;
+import androidx.compose.runtime.saveable.RememberSaveableKt;
+import androidx.compose.runtime.saveable.Saver;
+import java.util.UUID;
+import kotlin.Metadata;
+import kotlin.Unit;
+import kotlin.jvm.functions.Function0;
+import kotlin.jvm.functions.Function1;
+/* compiled from: ActivityResultRegistry.kt */
+@Metadata(d1 = {"\u0000\u001c\n\u0000\n\u0002\u0018\u0002\n\u0002\b\u0003\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0002\u0010\u0002\n\u0002\b\u0002\u001aM\u0010\u0000\u001a\u000e\u0012\u0004\u0012\u0002H\u0002\u0012\u0004\u0012\u0002H\u00030\u0001\"\u0004\b\u0000\u0010\u0002\"\u0004\b\u0001\u0010\u00032\u0012\u0010\u0004\u001a\u000e\u0012\u0004\u0012\u0002H\u0002\u0012\u0004\u0012\u0002H\u00030\u00052\u0012\u0010\u0006\u001a\u000e\u0012\u0004\u0012\u0002H\u0003\u0012\u0004\u0012\u00020\b0\u0007H\u0007¢\u0006\u0002\u0010\t¨\u0006\n"}, d2 = {"rememberLauncherForActivityResult", "Landroidx/activity/compose/ManagedActivityResultLauncher;", "I", "O", "contract", "Landroidx/activity/result/contract/ActivityResultContract;", "onResult", "Lkotlin/Function1;", "", "(Landroidx/activity/result/contract/ActivityResultContract;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;I)Landroidx/activity/compose/ManagedActivityResultLauncher;", "activity-compose_release"}, k = 2, mv = {1, 8, 0}, xi = 48)
+/* loaded from: classes.dex */
+public final class ActivityResultRegistryKt {
+    public static final <I, O> ManagedActivityResultLauncher<I, O> rememberLauncherForActivityResult(ActivityResultContract<I, O> activityResultContract, Function1<? super O, Unit> function1, Composer $composer, int $changed) {
+        Object value$iv;
+        Object value$iv2;
+        ActivityResultRegistry activityResultRegistry;
+        Object value$iv3;
+        ComposerKt.sourceInformationMarkerStart($composer, -1408504823, "C(rememberLauncherForActivityResult)84@3541L30,85@3598L30,89@3767L49,*92@3905L7,96@4088L46,97@4162L73,101@4418L176,101@4362L232:ActivityResultRegistry.kt#q1dkbc");
+        if (ComposerKt.isTraceInProgress()) {
+            ComposerKt.traceEventStart(-1408504823, $changed, -1, "androidx.activity.compose.rememberLauncherForActivityResult (ActivityResultRegistry.kt:82)");
+        }
+        State currentContract = SnapshotStateKt.rememberUpdatedState(activityResultContract, $composer, $changed & 14);
+        State currentOnResult = SnapshotStateKt.rememberUpdatedState(function1, $composer, ($changed >> 3) & 14);
+        String key = (String) RememberSaveableKt.m3846rememberSaveable(new Object[0], (Saver<Object, ? extends Object>) null, (String) null, (Function0<? extends Object>) new Function0<String>() { // from class: androidx.activity.compose.ActivityResultRegistryKt$rememberLauncherForActivityResult$key$1
+            @Override // kotlin.jvm.functions.Function0
+            public final String invoke() {
+                return UUID.randomUUID().toString();
+            }
+        }, $composer, 3072, 6);
+        ActivityResultRegistryOwner current = LocalActivityResultRegistryOwner.INSTANCE.getCurrent($composer, 6);
+        if (current == null) {
+            throw new IllegalStateException("No ActivityResultRegistryOwner was provided via LocalActivityResultRegistryOwner".toString());
+        }
+        ActivityResultRegistry activityResultRegistry2 = current.getActivityResultRegistry();
+        ComposerKt.sourceInformationMarkerStart($composer, -316131648, "CC(remember):ActivityResultRegistry.kt#9igjgp");
+        Object it$iv = $composer.rememberedValue();
+        if (it$iv == Composer.Companion.getEmpty()) {
+            value$iv = new ActivityResultLauncherHolder();
+            $composer.updateRememberedValue(value$iv);
+        } else {
+            value$iv = it$iv;
+        }
+        ActivityResultLauncherHolder realLauncher = (ActivityResultLauncherHolder) value$iv;
+        ComposerKt.sourceInformationMarkerEnd($composer);
+        ComposerKt.sourceInformationMarkerStart($composer, -316129253, "CC(remember):ActivityResultRegistry.kt#9igjgp");
+        Object it$iv2 = $composer.rememberedValue();
+        if (it$iv2 == Composer.Companion.getEmpty()) {
+            value$iv2 = new ManagedActivityResultLauncher(realLauncher, currentContract);
+            $composer.updateRememberedValue(value$iv2);
+        } else {
+            value$iv2 = it$iv2;
+        }
+        ManagedActivityResultLauncher returnedLauncher = (ManagedActivityResultLauncher) value$iv2;
+        ComposerKt.sourceInformationMarkerEnd($composer);
+        ComposerKt.sourceInformationMarkerStart($composer, -316120958, "CC(remember):ActivityResultRegistry.kt#9igjgp");
+        boolean invalid$iv = $composer.changed(currentOnResult) | $composer.changedInstance(realLauncher) | $composer.changedInstance(activityResultRegistry2) | $composer.changed(key) | $composer.changedInstance(activityResultContract);
+        Object it$iv3 = $composer.rememberedValue();
+        if (invalid$iv || it$iv3 == Composer.Companion.getEmpty()) {
+            Object activityResultRegistryKt$rememberLauncherForActivityResult$1$1 = new ActivityResultRegistryKt$rememberLauncherForActivityResult$1$1(realLauncher, activityResultRegistry2, key, activityResultContract, currentOnResult);
+            activityResultRegistry = activityResultRegistry2;
+            key = key;
+            Object value$iv4 = (Function1) activityResultRegistryKt$rememberLauncherForActivityResult$1$1;
+            $composer.updateRememberedValue(value$iv4);
+            value$iv3 = value$iv4;
+        } else {
+            activityResultRegistry = activityResultRegistry2;
+            value$iv3 = it$iv3;
+        }
+        ComposerKt.sourceInformationMarkerEnd($composer);
+        EffectsKt.DisposableEffect(activityResultRegistry, key, activityResultContract, (Function1) value$iv3, $composer, ($changed << 6) & 896);
+        if (ComposerKt.isTraceInProgress()) {
+            ComposerKt.traceEventEnd();
+        }
+        ComposerKt.sourceInformationMarkerEnd($composer);
+        return returnedLauncher;
+    }
+}

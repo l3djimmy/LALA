@@ -1,0 +1,19 @@
+package com.itextpdf.commons.actions.contexts;
+
+import com.itextpdf.commons.actions.AbstractContextBasedITextEvent;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+/* loaded from: classes12.dex */
+public class GenericContext implements IContext {
+    private final Set<String> supportedProducts = new HashSet();
+
+    public GenericContext(Collection<String> supportedProducts) {
+        this.supportedProducts.addAll(supportedProducts);
+    }
+
+    @Override // com.itextpdf.commons.actions.contexts.IContext
+    public boolean isAllowed(AbstractContextBasedITextEvent event) {
+        return this.supportedProducts.contains(event.getProductName());
+    }
+}

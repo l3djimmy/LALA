@@ -1,0 +1,15 @@
+package androidx.camera.core.internal.compat.workaround;
+
+import androidx.camera.core.internal.compat.quirk.CaptureFailedRetryQuirk;
+import androidx.camera.core.internal.compat.quirk.DeviceQuirks;
+/* loaded from: classes.dex */
+public class CaptureFailedRetryEnabler {
+    private final CaptureFailedRetryQuirk mCaptureFailedRetryQuirk = (CaptureFailedRetryQuirk) DeviceQuirks.get(CaptureFailedRetryQuirk.class);
+
+    public int getRetryCount() {
+        if (this.mCaptureFailedRetryQuirk == null) {
+            return 0;
+        }
+        return this.mCaptureFailedRetryQuirk.getRetryCount();
+    }
+}

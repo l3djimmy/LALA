@@ -1,0 +1,125 @@
+package androidx.compose.ui.text.input;
+
+import android.graphics.Matrix;
+import android.os.Build;
+import android.view.inputmethod.CursorAnchorInfo;
+import androidx.compose.ui.geometry.Rect;
+import androidx.compose.ui.text.TextLayoutResult;
+import androidx.compose.ui.text.TextRange;
+import androidx.compose.ui.text.TextRangeKt;
+import androidx.compose.ui.text.style.ResolvedTextDirection;
+import kotlin.Deprecated;
+import kotlin.Metadata;
+import kotlin.ranges.RangesKt;
+/* compiled from: CursorAnchorInfoBuilder.android.kt */
+@Metadata(d1 = {"\u0000F\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\b\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0002\b\u0002\n\u0002\u0010\u000b\n\u0002\b\u0005\n\u0002\u0010\u0007\n\u0002\b\u0004\u001a4\u0010\u0000\u001a\u00020\u0001*\u00020\u00012\u0006\u0010\u0002\u001a\u00020\u00032\u0006\u0010\u0004\u001a\u00020\u00032\u0006\u0010\u0005\u001a\u00020\u00062\u0006\u0010\u0007\u001a\u00020\b2\u0006\u0010\t\u001a\u00020\nH\u0002\u001ad\u0010\u000b\u001a\u00020\f*\u00020\u00012\u0006\u0010\r\u001a\u00020\u000e2\u0006\u0010\u0005\u001a\u00020\u00062\u0006\u0010\u0007\u001a\u00020\b2\u0006\u0010\u000f\u001a\u00020\u00102\u0006\u0010\t\u001a\u00020\n2\u0006\u0010\u0011\u001a\u00020\n2\b\b\u0002\u0010\u0012\u001a\u00020\u00132\b\b\u0002\u0010\u0014\u001a\u00020\u00132\b\b\u0002\u0010\u0015\u001a\u00020\u00132\b\b\u0002\u0010\u0016\u001a\u00020\u0013H\u0001\u001a\u001c\u0010\u0017\u001a\u00020\u0013*\u00020\n2\u0006\u0010\u0018\u001a\u00020\u00192\u0006\u0010\u001a\u001a\u00020\u0019H\u0002\u001a,\u0010\u001b\u001a\u00020\u0001*\u00020\u00012\u0006\u0010\u001c\u001a\u00020\u00032\u0006\u0010\u0005\u001a\u00020\u00062\u0006\u0010\u0007\u001a\u00020\b2\u0006\u0010\t\u001a\u00020\nH\u0002¨\u0006\u001d"}, d2 = {"addCharacterBounds", "Landroid/view/inputmethod/CursorAnchorInfo$Builder;", "startOffset", "", "endOffset", "offsetMapping", "Landroidx/compose/ui/text/input/OffsetMapping;", "textLayoutResult", "Landroidx/compose/ui/text/TextLayoutResult;", "innerTextFieldBounds", "Landroidx/compose/ui/geometry/Rect;", "build", "Landroid/view/inputmethod/CursorAnchorInfo;", "textFieldValue", "Landroidx/compose/ui/text/input/TextFieldValue;", "matrix", "Landroid/graphics/Matrix;", "decorationBoxBounds", "includeInsertionMarker", "", "includeCharacterBounds", "includeEditorBounds", "includeLineBounds", "containsInclusive", "x", "", "y", "setInsertionMarker", "selectionStart", "ui_release"}, k = 2, mv = {1, 9, 0}, xi = 48)
+/* loaded from: classes11.dex */
+public final class CursorAnchorInfoBuilder_androidKt {
+    public static /* synthetic */ CursorAnchorInfo build$default(CursorAnchorInfo.Builder builder, TextFieldValue textFieldValue, OffsetMapping offsetMapping, TextLayoutResult textLayoutResult, Matrix matrix, Rect rect, Rect rect2, boolean z, boolean z2, boolean z3, boolean z4, int i, Object obj) {
+        if ((i & 64) != 0) {
+            z = true;
+        }
+        if ((i & 128) != 0) {
+            z2 = true;
+        }
+        if ((i & 256) != 0) {
+            z3 = true;
+        }
+        if ((i & 512) != 0) {
+            z4 = true;
+        }
+        return build(builder, textFieldValue, offsetMapping, textLayoutResult, matrix, rect, rect2, z, z2, z3, z4);
+    }
+
+    @Deprecated(message = "Only exists to support the legacy TextInputService APIs. It is not used by any Compose code. A copy of this function in foundation is used by the legacy BasicTextField.")
+    public static final CursorAnchorInfo build(CursorAnchorInfo.Builder $this$build, TextFieldValue textFieldValue, OffsetMapping offsetMapping, TextLayoutResult textLayoutResult, Matrix matrix, Rect innerTextFieldBounds, Rect decorationBoxBounds, boolean includeInsertionMarker, boolean includeCharacterBounds, boolean includeEditorBounds, boolean includeLineBounds) {
+        $this$build.reset();
+        $this$build.setMatrix(matrix);
+        int selectionStart = TextRange.m6337getMinimpl(textFieldValue.m6587getSelectiond9O1mEE());
+        int selectionEnd = TextRange.m6336getMaximpl(textFieldValue.m6587getSelectiond9O1mEE());
+        $this$build.setSelectionRange(selectionStart, selectionEnd);
+        if (includeInsertionMarker) {
+            setInsertionMarker($this$build, selectionStart, offsetMapping, textLayoutResult, innerTextFieldBounds);
+        }
+        if (includeCharacterBounds) {
+            TextRange m6586getCompositionMzsxiRA = textFieldValue.m6586getCompositionMzsxiRA();
+            int compositionStart = m6586getCompositionMzsxiRA != null ? TextRange.m6337getMinimpl(m6586getCompositionMzsxiRA.m6343unboximpl()) : -1;
+            TextRange m6586getCompositionMzsxiRA2 = textFieldValue.m6586getCompositionMzsxiRA();
+            int compositionEnd = m6586getCompositionMzsxiRA2 != null ? TextRange.m6336getMaximpl(m6586getCompositionMzsxiRA2.m6343unboximpl()) : -1;
+            boolean z = false;
+            if (compositionStart >= 0 && compositionStart < compositionEnd) {
+                z = true;
+            }
+            if (z) {
+                $this$build.setComposingText(compositionStart, textFieldValue.getText().subSequence(compositionStart, compositionEnd));
+                addCharacterBounds($this$build, compositionStart, compositionEnd, offsetMapping, textLayoutResult, innerTextFieldBounds);
+            }
+        }
+        if (Build.VERSION.SDK_INT >= 33 && includeEditorBounds) {
+            CursorAnchorInfoApi33Helper.setEditorBoundsInfo($this$build, decorationBoxBounds);
+        }
+        if (Build.VERSION.SDK_INT >= 34 && includeLineBounds) {
+            CursorAnchorInfoApi34Helper.addVisibleLineBounds($this$build, textLayoutResult, innerTextFieldBounds);
+        }
+        return $this$build.build();
+    }
+
+    private static final CursorAnchorInfo.Builder setInsertionMarker(CursorAnchorInfo.Builder $this$setInsertionMarker, int selectionStart, OffsetMapping offsetMapping, TextLayoutResult textLayoutResult, Rect innerTextFieldBounds) {
+        if (selectionStart < 0) {
+            return $this$setInsertionMarker;
+        }
+        int selectionStartTransformed = offsetMapping.originalToTransformed(selectionStart);
+        Rect cursorRect = textLayoutResult.getCursorRect(selectionStartTransformed);
+        float left = cursorRect.getLeft();
+        long arg0$iv = textLayoutResult.m6310getSizeYbymL2g();
+        float x = RangesKt.coerceIn(left, 0.0f, (int) (arg0$iv >> 32));
+        boolean isTopVisible = containsInclusive(innerTextFieldBounds, x, cursorRect.getTop());
+        boolean isBottomVisible = containsInclusive(innerTextFieldBounds, x, cursorRect.getBottom());
+        boolean isRtl = textLayoutResult.getBidiRunDirection(selectionStartTransformed) == ResolvedTextDirection.Rtl;
+        int flags = 0;
+        if (isTopVisible || isBottomVisible) {
+            flags = 0 | 1;
+        }
+        if (!isTopVisible || !isBottomVisible) {
+            flags |= 2;
+        }
+        if (isRtl) {
+            flags |= 4;
+        }
+        $this$setInsertionMarker.setInsertionMarkerLocation(x, cursorRect.getTop(), cursorRect.getBottom(), cursorRect.getBottom(), flags);
+        return $this$setInsertionMarker;
+    }
+
+    private static final CursorAnchorInfo.Builder addCharacterBounds(CursorAnchorInfo.Builder $this$addCharacterBounds, int startOffset, int endOffset, OffsetMapping offsetMapping, TextLayoutResult textLayoutResult, Rect innerTextFieldBounds) {
+        int startOffsetTransformed = offsetMapping.originalToTransformed(startOffset);
+        int endOffsetTransformed = offsetMapping.originalToTransformed(endOffset);
+        float[] array = new float[(endOffsetTransformed - startOffsetTransformed) * 4];
+        textLayoutResult.getMultiParagraph().m6189fillBoundingBoxes8ffj60Q(TextRangeKt.TextRange(startOffsetTransformed, endOffsetTransformed), array, 0);
+        for (int offset = startOffset; offset < endOffset; offset++) {
+            int offsetTransformed = offsetMapping.originalToTransformed(offset);
+            int arrayIndex = (offsetTransformed - startOffsetTransformed) * 4;
+            Rect rect = new Rect(array[arrayIndex], array[arrayIndex + 1], array[arrayIndex + 2], array[arrayIndex + 3]);
+            int flags = 0;
+            if (innerTextFieldBounds.overlaps(rect)) {
+                flags = 0 | 1;
+            }
+            if (!containsInclusive(innerTextFieldBounds, rect.getLeft(), rect.getTop()) || !containsInclusive(innerTextFieldBounds, rect.getRight(), rect.getBottom())) {
+                flags |= 2;
+            }
+            if (textLayoutResult.getBidiRunDirection(offsetTransformed) == ResolvedTextDirection.Rtl) {
+                flags |= 4;
+            }
+            $this$addCharacterBounds.addCharacterBounds(offset, rect.getLeft(), rect.getTop(), rect.getRight(), rect.getBottom(), flags);
+        }
+        return $this$addCharacterBounds;
+    }
+
+    private static final boolean containsInclusive(Rect $this$containsInclusive, float x, float y) {
+        if (x <= $this$containsInclusive.getRight() && $this$containsInclusive.getLeft() <= x) {
+            if (y <= $this$containsInclusive.getBottom() && $this$containsInclusive.getTop() <= y) {
+                return true;
+            }
+        }
+        return false;
+    }
+}

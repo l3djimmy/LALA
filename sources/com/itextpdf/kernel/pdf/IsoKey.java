@@ -1,0 +1,23 @@
+package com.itextpdf.kernel.pdf;
+/* loaded from: classes12.dex */
+public enum IsoKey {
+    CANVAS_STACK,
+    FILL_COLOR,
+    EXTENDED_GRAPHICS_STATE,
+    INLINE_IMAGE,
+    PAGE,
+    PDF_OBJECT,
+    RENDERING_INTENT,
+    STROKE_COLOR,
+    TAG_STRUCTURE_ELEMENT,
+    FONT_GLYPHS,
+    XREF_TABLE,
+    SIGNATURE,
+    SIGNATURE_TYPE,
+    CRYPTO,
+    FONT,
+    CANVAS_BEGIN_MARKED_CONTENT,
+    CANVAS_WRITING_CONTENT,
+    LAYOUT,
+    DUPLICATE_ID_ENTRY
+}

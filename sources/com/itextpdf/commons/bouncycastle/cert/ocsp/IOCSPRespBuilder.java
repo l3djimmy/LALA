@@ -1,0 +1,7 @@
+package com.itextpdf.commons.bouncycastle.cert.ocsp;
+/* loaded from: classes12.dex */
+public interface IOCSPRespBuilder {
+    IOCSPResp build(int i, IBasicOCSPResp iBasicOCSPResp) throws AbstractOCSPException;
+
+    int getSuccessful();
+}
