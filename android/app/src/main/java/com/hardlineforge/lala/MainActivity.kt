@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import com.hardlineforge.lala.ui.screens.LalaApp
 import com.hardlineforge.lala.ui.theme.LalaTheme
 import dagger.hilt.android.AndroidEntryPoint
 

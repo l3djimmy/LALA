@@ -16,6 +16,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.hardlineforge.lala.ui.viewmodel.LalaViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(navController: NavHostController, vm: LalaViewModel = hiltViewModel()) {
     val results by vm.searchResults.collectAsState()

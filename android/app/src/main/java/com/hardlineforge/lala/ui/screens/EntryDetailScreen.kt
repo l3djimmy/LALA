@@ -9,7 +9,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.outlined.LocationOn
-import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,10 +19,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.hardlineforge.lala.data.EditHistory
+import com.hardlineforge.lala.ui.theme.categoryColor
 import com.hardlineforge.lala.ui.viewmodel.LalaViewModel
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EntryDetailScreen(
     navController: NavHostController,
@@ -87,7 +89,7 @@ fun EntryDetailScreen(
 
                 // Timestamp
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Outlined.Schedule, null, modifier = Modifier.size(16.dp))
+                    Icon(imageVector = Icons.Filled.Schedule, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(localTime, style = MaterialTheme.typography.bodyMedium)
                 }
@@ -110,7 +112,7 @@ fun EntryDetailScreen(
                     )
                 }
 
-                Divider()
+                HorizontalDivider()
 
                 // Comment
                 Text("Comment", style = MaterialTheme.typography.labelLarge)
@@ -118,7 +120,7 @@ fun EntryDetailScreen(
 
                 // Edit history
                 if (history.isNotEmpty()) {
-                    Divider()
+                    HorizontalDivider()
                     Text("Edit History", style = MaterialTheme.typography.labelLarge)
                     history.forEach { h ->
                         val histTime = h.editedAt.atZone(ZoneId.of(e.timezone))
@@ -133,7 +135,7 @@ fun EntryDetailScreen(
 
                 // Tags
                 if (e.tags.isNotBlank()) {
-                    Divider()
+                    HorizontalDivider()
                     Text("Tags", style = MaterialTheme.typography.labelLarge)
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         e.tags.split(",").filter { it.isNotBlank() }.forEach { tag ->
@@ -153,14 +155,14 @@ fun EntryDetailScreen(
 
                 // Photos
                 if (photos.isNotEmpty()) {
-                    Divider()
+                    HorizontalDivider()
                     Text("Photos (${photos.size})", style = MaterialTheme.typography.labelLarge)
                     // Photo grid would go here
                 }
 
                 // Videos
                 if (videos.isNotEmpty()) {
-                    Divider()
+                    HorizontalDivider()
                     Text("Videos (${videos.size})", style = MaterialTheme.typography.labelLarge)
                     // Video player + filmstrip button would go here
                 }

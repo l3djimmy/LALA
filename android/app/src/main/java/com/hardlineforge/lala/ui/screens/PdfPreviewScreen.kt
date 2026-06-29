@@ -1,25 +1,27 @@
 package com.hardlineforge.lala.ui.screens
 
-import android.content.Context
 import android.os.Environment
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
-import com.github.afreakyelf.pdfviewer.AndroidPdfViewer
+import com.hardlineforge.lala.data.LogEntry
 import com.hardlineforge.lala.pdf.PdfGenerator
+import com.hardlineforge.lala.ui.viewmodel.LalaViewModel
 import java.io.File
 import java.io.FileOutputStream
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PdfPreviewScreen(navController: NavHostController) {
+fun PdfPreviewScreen(navController: NavHostController, vm: LalaViewModel = hiltViewModel()) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -33,18 +35,17 @@ fun PdfPreviewScreen(navController: NavHostController) {
         }
     ) { paddingValues ->
         val context = LocalContext.current
-n        var pdfBytes by remember { mutableStateOf<ByteArray?>(null) }
+        var pdfBytes by remember { mutableStateOf<ByteArray?>(null) }
         var isSaving by remember { mutableStateOf(false) }
         var saveError by remember { mutableStateOf<String?>(null) }
 
-        val viewModel: LogViewModel = viewModel()
-        val entries by viewModel.logEntries.collectAsState()
+        val entries by vm.allEntries.collectAsState()
 
         LaunchedEffect(entries) {
             if (entries.isNotEmpty()) {
                 val file = File(context.cacheDir, "temp_report.pdf")
                 pdfBytes = try {
-                    PdfGenerator().generate(entries, file).readBytes()
+                    PdfGenerator(context).generate(entries, file).readBytes()
                 } catch (e: Exception) {
                     Toast.makeText(context, "Failed to generate PDF: ${e.message}", Toast.LENGTH_LONG).show()
                     null
@@ -58,11 +59,12 @@ n        var pdfBytes by remember { mutableStateOf<ByteArray?>(null) }
                     CircularProgressIndicator()
                 }
             } else {
-                AndroidPdfViewer(
-                    modifier = Modifier.weight(1f),
-                    pdfData = pdfBytes!!,
-                    enableSwipe = true,
-                    nightMode = false
+                // Simple text preview instead of PDF viewer
+                Text(
+                    text = "PDF generated (${pdfBytes!!.size} bytes). Use Save button to export.",
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(16.dp)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
@@ -83,7 +85,8 @@ n        var pdfBytes by remember { mutableStateOf<ByteArray?>(null) }
                             FileOutputStream(file).use { output ->
                                 output.write(pdfBytes)
                             }
-                            Toast.makeText(context, "PDF saved to ${file.absolutePath}", Toast.LENGTH_LONG).show()n                        } catch (e: Exception) {
+                            Toast.makeText(context, "PDF saved to ${file.absolutePath}", Toast.LENGTH_LONG).show()
+                        } catch (e: Exception) {
                             saveError = e.localizedMessage ?: "Failed to save PDF"
                         } finally {
                             isSaving = false

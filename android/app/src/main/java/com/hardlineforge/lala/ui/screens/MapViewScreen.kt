@@ -13,15 +13,21 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.hardlineforge.lala.ui.viewmodel.LalaViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapViewScreen(vm: LalaViewModel = hiltViewModel()) {
     val entries by vm.allEntries.collectAsState()
     val geotagged = entries.filter { it.gpsLat != null && it.gpsLon != null }
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     Scaffold(
-        topBar = { Text("Map View", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(16.dp)) }
-    ) { padding ->
-        Box(modifier = Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.Center) {
+        topBar = { 
+            TopAppBar(
+                title = { Text("Map View") }
+            )
+        }
+    ) { innerPadding ->
+        Box(modifier = Modifier.padding(innerPadding).fillMaxSize(), contentAlignment = Alignment.Center) {
             if (geotagged.isEmpty()) {
                 Text("No geotagged entries yet.", style = MaterialTheme.typography.bodyLarge)
             } else {
@@ -42,7 +48,7 @@ fun MapViewScreen(vm: LalaViewModel = hiltViewModel()) {
                     geotagged.forEach { e ->
                         val nx = ((e.gpsLon!! - minLon) / lonRange).toFloat() * w
                         val ny = h - (((e.gpsLat!! - minLat) / latRange).toFloat() * h)
-                        drawCircle(color = MaterialTheme.colorScheme.primary, radius = 6f, center = Offset(nx, ny))
+                        drawCircle(color = primaryColor, radius = 6f, center = Offset(nx, ny))
                     }
                 }
             }

@@ -9,8 +9,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Image
-import androidx.compose.material.icons.outlined.Videocam
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +24,7 @@ import com.hardlineforge.lala.data.Photo
 import com.hardlineforge.lala.data.Video
 import com.hardlineforge.lala.ui.viewmodel.LalaViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MediaGalleryScreen(
     navController: NavHostController,
@@ -50,12 +51,12 @@ fun MediaGalleryScreen(
                 selected = filter == "photo",
                 onClick = { filter = "photo" },
                 shape = MaterialTheme.shapes.medium
-            ) { Icon(Icons.Outlined.Image, null); Spacer(modifier = Modifier.width(4.dp)); Text("Photos") }
+            ) { Icon(imageVector = Icons.Default.Image, contentDescription = null); Spacer(modifier = Modifier.width(4.dp)); Text("Photos") }
             SegmentedButton(
                 selected = filter == "video",
                 onClick = { filter = "video" },
                 shape = MaterialTheme.shapes.medium
-            ) { Icon(Icons.Outlined.Videocam, null); Spacer(modifier = Modifier.width(4.dp)); Text("Videos") }
+            ) { Icon(imageVector = Icons.Default.Videocam, contentDescription = null); Spacer(modifier = Modifier.width(4.dp)); Text("Videos") }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -104,7 +105,7 @@ private fun PhotoThumbnail(photo: Photo) {
             )
         } else {
             Icon(
-                Icons.Outlined.Image,
+                imageVector = Icons.Default.Image,
                 contentDescription = null,
                 modifier = Modifier.align(Alignment.Center),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -124,7 +125,7 @@ private fun VideoThumbnail(video: Video, navController: NavHostController) {
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(
-                Icons.Outlined.Videocam,
+                imageVector = Icons.Default.Videocam,
                 contentDescription = null,
                 modifier = Modifier.size(48.dp),
                 tint = MaterialTheme.colorScheme.primary

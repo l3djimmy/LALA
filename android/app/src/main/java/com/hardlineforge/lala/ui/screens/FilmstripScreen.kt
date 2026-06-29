@@ -21,7 +21,10 @@ import androidx.navigation.NavHostController
 import com.hardlineforge.lala.data.VideoFrame
 import com.hardlineforge.lala.ui.viewmodel.LalaViewModel
 import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FilmstripScreen(
     navController: NavHostController,
@@ -44,7 +47,7 @@ fun FilmstripScreen(
             if (video != null) {
                 isExtracting = true
                 val outDir = File(context.filesDir, "frames/$videoId").apply { mkdirs() }
-                val results = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                val results = withContext(Dispatchers.IO) {
                     vm.frameExtractor.extractFrames(
                         android.net.Uri.fromFile(File(video.uri)),
                         outDir,

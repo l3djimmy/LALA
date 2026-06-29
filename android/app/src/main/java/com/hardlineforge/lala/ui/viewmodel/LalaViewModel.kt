@@ -7,11 +7,13 @@ import com.hardlineforge.lala.data.*
 import com.hardlineforge.lala.location.LocationManager
 import com.hardlineforge.lala.media.VideoFrameExtractor
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.Instant
 import javax.inject.Inject
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class LalaViewModel @Inject constructor(
     private val repo: LogRepository,
@@ -119,6 +121,12 @@ class LalaViewModel @Inject constructor(
     fun addCustomCategory(name: String) {
         viewModelScope.launch {
             repo.insertCustomCategory(CustomCategory(name = name))
+        }
+    }
+
+    fun deleteCustomCategory(category: CustomCategory) {
+        viewModelScope.launch {
+            repo.deleteCustomCategory(category)
         }
     }
 

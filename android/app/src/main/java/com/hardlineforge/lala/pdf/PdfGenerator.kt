@@ -20,7 +20,6 @@ class PdfGenerator @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     fun generate(entries: List<LogEntry>, file: File): File {
-    fun generate(entries: List<LogEntry>, file: File): File {
         val writer = PdfWriter(file)
         val pdfDoc = PdfDocument(writer)
         val document = Document(pdfDoc, PageSize.LETTER)
@@ -36,8 +35,7 @@ class PdfGenerator @Inject constructor(
                 .setTextAlignment(TextAlignment.CENTER)
                 .setFontSize(10f)
         )
-        document.add(Paragraph("
-"))
+        document.add(Paragraph("\n"))
 
         if (entries.isEmpty()) {
             document.add(Paragraph("No entries to report."))
@@ -55,8 +53,7 @@ class PdfGenerator @Inject constructor(
                 }
                 document.add(Paragraph("Comment:").setItalic())
                 document.add(Paragraph(entry.comment))
-                document.add(Paragraph("
-"))
+                document.add(Paragraph("\n"))
             }
         }
 

@@ -73,3 +73,17 @@ fun LalaTheme(darkTheme: Boolean = false, content: @Composable () -> Unit) {
         content = content
     )
 }
+
+@Composable
+fun categoryColor(category: String): Color = when (category) {
+    "Noise" -> MaterialTheme.colorScheme.error
+    "Suspicious Activity" -> MaterialTheme.colorScheme.secondary
+    "Property Damage" -> MaterialTheme.colorScheme.tertiary
+    "Animal Issue" -> MaterialTheme.colorScheme.primary
+    "Parking" -> MaterialTheme.colorScheme.outline
+    "Trash / Yard" -> MaterialTheme.colorScheme.surfaceVariant
+    "HOA / Code Violation" -> MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+    "Safety Hazard" -> MaterialTheme.colorScheme.error
+    "Poaching / Wildlife" -> MaterialTheme.colorScheme.tertiary
+    else -> MaterialTheme.colorScheme.primary
+}

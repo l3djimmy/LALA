@@ -4,18 +4,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Divider
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Text
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.Map
-import androidx.compose.material.icons.outlined.PhotoLibrary
-import androidx.compose.material.icons.outlined.PictureAsPdf
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -41,7 +40,7 @@ fun DrawerContent(navController: NavHostController, onNavigate: () -> Unit) {
 
         NavigationDrawerItem(
             label = { Text("Timeline") },
-            icon = { Icon(Icons.Outlined.CalendarMonth, contentDescription = null) },
+            icon = { Icon(Icons.Filled.CalendarMonth, contentDescription = null) },
             selected = false,
             onClick = {
                 navController.navigate("timeline") { popUpTo("timeline") { inclusive = true } }
@@ -50,7 +49,7 @@ fun DrawerContent(navController: NavHostController, onNavigate: () -> Unit) {
         )
         NavigationDrawerItem(
             label = { Text("Map View") },
-            icon = { Icon(Icons.Outlined.Map, contentDescription = null) },
+            icon = { Icon(Icons.Filled.Map, contentDescription = null) },
             selected = false,
             onClick = {
                 navController.navigate("map_view")
@@ -59,7 +58,7 @@ fun DrawerContent(navController: NavHostController, onNavigate: () -> Unit) {
         )
         NavigationDrawerItem(
             label = { Text("Media Gallery") },
-            icon = { Icon(Icons.Outlined.PhotoLibrary, contentDescription = null) },
+            icon = { Icon(Icons.Filled.PhotoLibrary, contentDescription = null) },
             selected = false,
             onClick = {
                 navController.navigate("media_gallery")
@@ -68,7 +67,7 @@ fun DrawerContent(navController: NavHostController, onNavigate: () -> Unit) {
         )
         NavigationDrawerItem(
             label = { Text("Reports") },
-            icon = { Icon(Icons.Outlined.PictureAsPdf, contentDescription = null) },
+            icon = { Icon(Icons.Filled.PictureAsPdf, contentDescription = null) },
             selected = false,
             onClick = {
                 navController.navigate("reports")
@@ -77,7 +76,7 @@ fun DrawerContent(navController: NavHostController, onNavigate: () -> Unit) {
         )
         NavigationDrawerItem(
             label = { Text("Settings") },
-            icon = { Icon(Icons.Outlined.Settings, contentDescription = null) },
+            icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
             selected = false,
             onClick = {
                 navController.navigate("settings")

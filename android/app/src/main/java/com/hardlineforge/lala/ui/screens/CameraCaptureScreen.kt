@@ -15,6 +15,7 @@ import androidx.camera.video.VideoRecordEvent
 import androidx.camera.video.VideoCapture
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -46,6 +47,7 @@ import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.Executors
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CameraCaptureScreen(
     navController: NavHostController,
@@ -71,10 +73,11 @@ fun CameraCaptureScreen(
     var isRecording by remember { mutableStateOf(false) }
     var recording by remember { mutableStateOf<Recording?>(null) }
 
-    val previewView = remember { PreviewView(context) }
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
     var videoCapture by remember { mutableStateOf<VideoCapture<*>?>(null) }
     val executor = remember { Executors.newSingleThreadExecutor() }
+
+    val previewView = remember { PreviewView(context) }
 
     LaunchedEffect(hasCameraPermission, lensFacing, mode) {
         if (!hasCameraPermission) {
@@ -85,8 +88,8 @@ fun CameraCaptureScreen(
         val future = ProcessCameraProvider.getInstance(context)
         try {
             val provider = withContext(Dispatchers.IO) { future.get() }
-            val preview = CamPreview.Builder().build().also {
-                it.surfaceProvider = previewView.surfaceProvider
+            val preview = CamPreview.Builder().build().also { p ->
+                p.setSurfaceProvider(previewView.surfaceProvider)
             }
             val selector = CameraSelector.Builder()
                 .requireLensFacing(lensFacing)
@@ -115,152 +118,118 @@ fun CameraCaptureScreen(
         }
     }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            try { recording?.close() } catch (_: Exception) {}
-            executor.shutdown()
-        }
-    }
-
-    Scaffold { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            AndroidView(
-                factory = { previewView },
-                modifier = Modifier.fillMaxSize()
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(if (mode == CaptureMode.PHOTO) "Take Photo" else "Record Video") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close")
+                    }
+                }
             )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+        ) {
+            if (hasCameraPermission) {
+                Box(modifier = Modifier.weight(1f)) {
+                    AndroidView(
+                        factory = { previewView },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
 
-            // Top bar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-                    .align(Alignment.TopCenter),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = { navController.popBackStack() },
+                // Controls
+                Row(
                     modifier = Modifier
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Close, "Close", tint = MaterialTheme.colorScheme.onSurface)
-                }
-
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(
-                        selected = mode == CaptureMode.PHOTO,
-                        onClick = { if (!isRecording) mode = CaptureMode.PHOTO },
-                        label = { Text("Photo") }
-                    )
-                    FilterChip(
-                        selected = mode == CaptureMode.VIDEO,
-                        onClick = { if (!isRecording) mode = CaptureMode.VIDEO },
-                        label = { Text("Video") }
-                    )
-                }
-            }
-
-            // Recording indicator
-            if (isRecording) {
-                Box(
-                    modifier = Modifier
-                        .padding(top = 80.dp)
-                        .align(Alignment.TopCenter)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.error)
-                        .padding(horizontal = 16.dp, vertical = 6.dp)
-                ) {
-                    Text(
-                        "● REC",
-                        color = MaterialTheme.colorScheme.onError,
-                        style = MaterialTheme.typography.labelMedium
-                    )
-                }
-            }
-
-            // Bottom controls
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 32.dp)
-                    .align(Alignment.BottomCenter),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Flip camera
-                IconButton(
-                    onClick = {
-                        lensFacing = if (lensFacing == CameraSelector.LENS_FACING_BACK)
-                            CameraSelector.LENS_FACING_FRONT
-                        else
-                            CameraSelector.LENS_FACING_BACK
-                    },
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
-                ) {
-                    Icon(
-                        Icons.Default.Cameraswitch,
-                        "Flip",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-
-                // Shutter
-                Box(
-                    modifier = Modifier
-                        .size(80.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (isRecording) MaterialTheme.colorScheme.error
-                            else MaterialTheme.colorScheme.primary
+                    // Mode toggle
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
+                            .clickable { mode = if (mode == CaptureMode.PHOTO) CaptureMode.VIDEO else CaptureMode.PHOTO }
+                    ) {
+                        Text(
+                            if (mode == CaptureMode.PHOTO) "Photo" else "Video",
+                            modifier = Modifier.align(Alignment.Center),
+                            style = MaterialTheme.typography.labelMedium
                         )
-                        .padding(4.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    IconButton(onClick = {
-                        if (mode == CaptureMode.PHOTO) {
-                            scope.launch {
-                                val ok = capturePhoto(context, imageCapture, executor, entryId, vm)
-                                if (ok) navController.popBackStack()
-                            }
-                        } else {
-                            if (!isRecording) {
-                                val rec = startRecording(context, videoCapture, entryId, vm)
-                                if (rec != null) {
-                                    recording = rec
-                                    isRecording = true
+                    }
+
+                    // Flip camera
+                    IconButton(
+                        onClick = {
+                            lensFacing = if (lensFacing == CameraSelector.LENS_FACING_BACK)
+                                CameraSelector.LENS_FACING_FRONT else CameraSelector.LENS_FACING_BACK
+                        },
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
+                    ) {
+                        Icon(imageVector = Icons.Default.Cameraswitch, contentDescription = "Flip", tint = MaterialTheme.colorScheme.onSurface)
+                    }
+
+                    // Shutter
+                    Box(
+                        modifier = Modifier
+                            .size(80.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (isRecording) MaterialTheme.colorScheme.error
+                                else MaterialTheme.colorScheme.primary
+                            )
+                            .padding(4.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        IconButton(onClick = {
+                            if (mode == CaptureMode.PHOTO) {
+                                scope.launch {
+                                    val ok = capturePhoto(context, imageCapture, executor, entryId, vm)
+                                    if (ok) navController.popBackStack()
                                 }
                             } else {
-                                recording?.close()
-                                recording = null
-                                isRecording = false
-                                navController.popBackStack()
+                                if (!isRecording) {
+                                    val rec = startRecording(context, videoCapture, entryId, vm)
+                                    if (rec != null) {
+                                        recording = rec
+                                        isRecording = true
+                                    }
+                                } else {
+                                    recording?.close()
+                                    recording = null
+                                    isRecording = false
+                                    navController.popBackStack()
+                                }
                             }
-                        }
-                    }) {
-                        if (mode == CaptureMode.PHOTO) {
-                            Icon(
-                                Icons.Default.PhotoCamera,
-                                "Take Photo",
-                                tint = MaterialTheme.colorScheme.onPrimary
-                            )
-                        } else {
-                            Icon(
-                                imageVector = if (isRecording) Icons.Default.Stop else Icons.Default.Videocam,
-                                contentDescription = if (isRecording) "Stop" else "Record",
-                                tint = MaterialTheme.colorScheme.onPrimary
-                            )
+                        }) {
+                            if (mode == CaptureMode.PHOTO) {
+                                Icon(
+                                    imageVector = Icons.Default.PhotoCamera,
+                                    contentDescription = "Take Photo",
+                                    tint = MaterialTheme.colorScheme.onPrimary
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = if (isRecording) Icons.Default.Stop else Icons.Default.Videocam,
+                                    contentDescription = if (isRecording) "Stop" else "Record",
+                                    tint = MaterialTheme.colorScheme.onPrimary
+                                )
+                            }
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.size(56.dp))
-            }
-
-            if (!hasCameraPermission) {
+            } else {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()

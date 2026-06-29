@@ -16,6 +16,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportsScreen(navController: NavHostController, vm: LalaViewModel = hiltViewModel()) {
     var startDate by remember { mutableStateOf(LocalDate.now().minusMonths(1)) }
@@ -75,7 +76,7 @@ fun ReportsScreen(navController: NavHostController, vm: LalaViewModel = hiltView
             modifier = Modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.medium
         ) {
-            Icon(Icons.Default.PictureAsPdf, null)
+            Icon(imageVector = Icons.Default.PictureAsPdf, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
             Text("Generate PDF Report")
         }

@@ -9,8 +9,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.LocationOn
-import androidx.compose.material.icons.outlined.PhotoCamera
-import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.hardlineforge.lala.data.LogEntry
+import com.hardlineforge.lala.ui.theme.categoryColor
 import com.hardlineforge.lala.ui.viewmodel.LalaViewModel
 import java.time.format.DateTimeFormatter
 import java.time.ZoneId
@@ -138,18 +137,4 @@ private fun TimelineCard(entry: LogEntry, navController: NavHostController, vm: 
             }
         }
     }
-}
-
-@Composable
-private fun categoryColor(category: String) = when (category) {
-    "Noise" -> MaterialTheme.colorScheme.error
-    "Suspicious Activity" -> MaterialTheme.colorScheme.secondary
-    "Property Damage" -> MaterialTheme.colorScheme.tertiary
-    "Animal Issue" -> MaterialTheme.colorScheme.primary
-    "Parking" -> MaterialTheme.colorScheme.outline
-    "Trash / Yard" -> MaterialTheme.colorScheme.surfaceVariant
-    "HOA / Code Violation" -> MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
-    "Safety Hazard" -> MaterialTheme.colorScheme.error
-    "Poaching / Wildlife" -> MaterialTheme.colorScheme.tertiary
-    else -> MaterialTheme.colorScheme.primary
 }

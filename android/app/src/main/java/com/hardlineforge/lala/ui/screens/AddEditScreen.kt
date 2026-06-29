@@ -34,6 +34,7 @@ import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditScreen(
     navController: NavHostController,
@@ -192,7 +193,7 @@ fun AddEditScreen(
                                 gpsLoading = false
                             }
                         }) {
-                            Icon(Icons.Default.MyLocation, "Get GPS")
+                            Icon(imageVector = Icons.Default.MyLocation, contentDescription = "Get GPS")
                         }
                     }
                 },
@@ -208,7 +209,7 @@ fun AddEditScreen(
                 value = comment,
                 onValueChange = { comment = it },
                 label = { Text("Comment *") },
-                leadingIcon = { Icon(Icons.Default.Mic, null) },
+                leadingIcon = { Icon(imageVector = Icons.Default.Mic, contentDescription = null) },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
                 shape = MaterialTheme.shapes.medium,
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
@@ -234,7 +235,7 @@ fun AddEditScreen(
                 )
             }
 
-            Divider(modifier = Modifier.padding(vertical = 8.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
             // Media attachments
             Text("Media", style = MaterialTheme.typography.titleMedium)
@@ -244,7 +245,7 @@ fun AddEditScreen(
                     onClick = { navController.navigate("camera_capture/$id") },
                     shape = MaterialTheme.shapes.medium
                 ) {
-                    Icon(Icons.Default.CameraAlt, null)
+                    Icon(imageVector = Icons.Default.CameraAlt, contentDescription = null)
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Photo")
                 }
@@ -252,7 +253,7 @@ fun AddEditScreen(
                     onClick = { navController.navigate("camera_capture/$id") },
                     shape = MaterialTheme.shapes.medium
                 ) {
-                    Icon(Icons.Default.Videocam, null)
+                    Icon(imageVector = Icons.Default.Videocam, contentDescription = null)
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Video")
                 }

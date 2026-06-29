@@ -3,11 +3,13 @@ package com.hardlineforge.lala.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.hardlineforge.lala.ui.viewmodel.LalaViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(vm: LalaViewModel = hiltViewModel()) {
     var darkMode by remember { mutableStateOf(false) }
@@ -46,7 +48,7 @@ fun SettingsScreen(vm: LalaViewModel = hiltViewModel()) {
             }
         }
 
-        Divider()
+        HorizontalDivider()
 
         // Data management
         Text("Data Management", style = MaterialTheme.typography.titleMedium)
@@ -57,7 +59,7 @@ fun SettingsScreen(vm: LalaViewModel = hiltViewModel()) {
             Text("Export All Data")
         }
 
-        Divider()
+        HorizontalDivider()
 
         // Categories
         Text("Custom Categories", style = MaterialTheme.typography.titleMedium)
