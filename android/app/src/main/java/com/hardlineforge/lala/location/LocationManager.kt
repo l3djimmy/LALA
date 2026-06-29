@@ -5,9 +5,11 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager as AndroidLocationManager
+import android.os.Bundle
 import android.os.Looper
 import androidx.core.content.ContextCompat
-import com.google.android.gms.location.*
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -19,7 +21,7 @@ import javax.inject.Singleton
 class LocationManager @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-    private val client = LocationServices.getFusedLocationProviderClient(context)
+    private val locationManager: AndroidLocationManager = context.getSystemService(Context.LOCATION_SERVICE) as AndroidLocationManager
 
     fun hasPermission(): Boolean {
         return ContextCompat.checkSelfPermission(
@@ -37,7 +39,59 @@ class LocationManager @Inject constructor(
             return@callbackFlow
         }
 
-        val request = LocationRequest.Builder(
+        val listener = object : LocationListener {
+            override fun onLocationChanged(location: Location) {
+                trySend(location)
+            }
+            override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
+            override fun onProviderEnabled(provider: String) {}
+            override fun onProviderDisabled(provider: String) {}
+        }
+
+        try {
+            locationManager.requestLocationUpdates(
+                AndroidLocationManager.GPS_PROVIDER,
+                5000L,  // minTimeMs
+                10f,    // minDistanceM
+                listener,
+                Looper.getMainLooper()
+            )
+        } catch (e: Exception) {
+            // GPS provider not available, try network
+            try {
+                locationManager.requestLocationUpdates(
+                    AndroidLocationManager.NETWORK_PROVIDER,
+                    5000L,
+                    10f,
+                    listener,
+                    Looper.getMainLooper()
+                )
+            } catch (e2: Exception) {
+                close(e2)
+                return@callbackFlow
+            }
+        }
+
+        awaitClose {
+            locationManager.removeUpdates(listener)
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    fun getLastKnownLocation(): Location? {
+        if (!hasPermission()) return null
+        var location: Location? = null
+        try {
+            location = locationManager.getLastKnownLocation(AndroidLocationManager.GPS_PROVIDER)
+        } catch (_: Exception) {}
+        if (location == null) {
+            try {
+                location = locationManager.getLastKnownLocation(AndroidLocationManager.NETWORK_PROVIDER)
+            } catch (_: Exception) {}
+        }
+        return location
+    }
+}
             Priority.PRIORITY_HIGH_ACCURACY, 5000L
         ).apply {
             setWaitForAccurateLocation(true)

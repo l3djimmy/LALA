@@ -70,7 +70,9 @@ dependencies {
     implementation(libs.camera.camera2)
     implementation(libs.camera.lifecycle)
     implementation(libs.camera.view)
-    implementation(libs.google.play.services.location)
+    // Removed: Google Play Services Location
+    // implementation(libs.google.play.services.location)
+    // Using native Android LocationManager instead (GPS + Network providers)
     // PDF viewer libraries removed due to JitPack auth issues
     // implementation("com.github.barteksc:android-pdf-viewer:3.2.0-beta.1")
 }
