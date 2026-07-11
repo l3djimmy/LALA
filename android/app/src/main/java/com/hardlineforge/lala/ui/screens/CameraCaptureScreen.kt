@@ -2,6 +2,7 @@ package com.hardlineforge.lala.ui.screens
 
 import android.Manifest
 import android.content.Context
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
@@ -41,11 +42,13 @@ import com.hardlineforge.lala.data.Video
 import com.hardlineforge.lala.ui.viewmodel.LalaViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.Executors
+import kotlin.coroutines.resume
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -192,11 +195,20 @@ fun CameraCaptureScreen(
                             .padding(4.dp),
                         contentAlignment = Alignment.Center
                     ) {
+                        var isCapturing by remember { mutableStateOf(false) }
                         IconButton(onClick = {
                             if (mode == CaptureMode.PHOTO) {
+                                if (isCapturing) return@IconButton
+                                isCapturing = true
                                 scope.launch {
                                     val ok = capturePhoto(context, imageCapture, executor, entryId, vm)
-                                    if (ok) navController.popBackStack()
+                                    isCapturing = false
+                                    if (ok) {
+                                        Toast.makeText(context, "Photo saved", Toast.LENGTH_SHORT).show()
+                                        navController.popBackStack()
+                                    } else {
+                                        Toast.makeText(context, "Failed to capture photo", Toast.LENGTH_SHORT).show()
+                                    }
                                 }
                             } else {
                                 if (!isRecording) {
@@ -245,7 +257,7 @@ fun CameraCaptureScreen(
 
 private enum class CaptureMode { PHOTO, VIDEO }
 
-private fun capturePhoto(
+private suspend fun capturePhoto(
     context: Context,
     imageCapture: ImageCapture?,
     executor: java.util.concurrent.ExecutorService,
@@ -256,25 +268,29 @@ private fun capturePhoto(
     val dir = File(context.filesDir, "photos/$entryId").apply { mkdirs() }
     val file = File(dir, "${UUID.randomUUID()}.jpg")
     val opts = ImageCapture.OutputFileOptions.Builder(file).build()
-    var success = false
 
-    ic.takePicture(opts, executor,
-        object : ImageCapture.OnImageSavedCallback {
-            override fun onError(exc: ImageCaptureException) {
-                success = false
+    val success = suspendCancellableCoroutine<Boolean> { cont ->
+        ic.takePicture(opts, executor,
+            object : ImageCapture.OnImageSavedCallback {
+                override fun onError(exc: ImageCaptureException) {
+                    if (cont.isActive) cont.resume(false)
+                }
+                override fun onImageSaved(output: ImageCapture.OutputFileResults) {
+                    if (cont.isActive) cont.resume(true)
+                }
             }
-            override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                vm.addPhoto(
-                    Photo(
-                        entryId = entryId,
-                        uri = file.absolutePath,
-                        timestamp = Instant.now()
-                    )
-                )
-                success = true
-            }
-        }
-    )
+        )
+    }
+
+    if (success) {
+        vm.addPhoto(
+            Photo(
+                entryId = entryId,
+                uri = file.absolutePath,
+                timestamp = Instant.now()
+            )
+        )
+    }
     return success
 }
 
