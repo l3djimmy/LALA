@@ -53,6 +53,10 @@ fun AddEditScreen(
     val isNew = entryId == null
     val entry = if (!isNew) existing else null
 
+    // Stable across recompositions so photos/videos captured before the first Save
+    // attach to the same LogEntry id that ends up persisted.
+    val stableEntryId = remember { entryId ?: java.util.UUID.randomUUID().toString() }
+
     // Fields
     var timestamp by remember { mutableStateOf(LocalDateTime.now()) }
     var timezone by remember { mutableStateOf(ZoneId.systemDefault().id) }
@@ -135,7 +139,7 @@ fun AddEditScreen(
 
                         val instant = timestamp.atZone(ZoneId.of(timezone)).toInstant()
                         val newEntry = LogEntry(
-                            id = entry?.id ?: java.util.UUID.randomUUID().toString(),
+                            id = stableEntryId,
                             timestamp = instant,
                             timezone = timezone,
                             gpsLat = gpsLat,
@@ -265,10 +269,32 @@ fun AddEditScreen(
 
             // Media attachments
             Text("Media", style = MaterialTheme.typography.titleMedium)
-            val id = entry?.id ?: entryId ?: java.util.UUID.randomUUID().toString()
+            val openCamera: () -> Unit = {
+                if (isNew) {
+                    // Photos/videos have a FK on entryId, so a draft row must exist before capturing.
+                    val instant = timestamp.atZone(ZoneId.of(timezone)).toInstant()
+                    vm.saveEntry(
+                        LogEntry(
+                            id = stableEntryId,
+                            timestamp = instant,
+                            timezone = timezone,
+                            gpsLat = gpsLat,
+                            gpsLon = gpsLon,
+                            category = category,
+                            locationName = locationName.ifBlank { null },
+                            comment = comment.trim(),
+                            tags = tags.trim(),
+                            createdAt = Instant.now(),
+                            updatedAt = Instant.now()
+                        ),
+                        isNew = true
+                    )
+                }
+                navController.navigate("camera_capture/$stableEntryId")
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedButton(
-                    onClick = { navController.navigate("camera_capture/$id") },
+                    onClick = openCamera,
                     shape = MaterialTheme.shapes.medium
                 ) {
                     Icon(imageVector = Icons.Default.CameraAlt, contentDescription = null)
@@ -276,7 +302,7 @@ fun AddEditScreen(
                     Text("Photo")
                 }
                 OutlinedButton(
-                    onClick = { navController.navigate("camera_capture/$id") },
+                    onClick = openCamera,
                     shape = MaterialTheme.shapes.medium
                 ) {
                     Icon(imageVector = Icons.Default.Videocam, contentDescription = null)

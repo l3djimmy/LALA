@@ -2,5 +2,6 @@
 <paths>
     <files-path name="media" path="media/" />
     <files-path name="exports" path="exports/" />
+    <files-path name="logs" path="logs/" />
     <cache-path name="cache" path="." />
 </paths>

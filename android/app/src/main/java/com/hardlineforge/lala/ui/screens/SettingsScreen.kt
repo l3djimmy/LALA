@@ -1,5 +1,7 @@
 package com.hardlineforge.lala.ui.screens
 
+import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -7,9 +9,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.hardlineforge.lala.ui.viewmodel.LalaViewModel
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -102,5 +107,31 @@ fun SettingsScreen(vm: LalaViewModel = hiltViewModel()) {
             }
         }
         // Add new category input would go here
+
+        HorizontalDivider()
+
+        // Debug
+        Text("Debug", style = MaterialTheme.typography.titleMedium)
+        val context = LocalContext.current
+        OutlinedButton(
+            onClick = {
+                val logFile = File(context.filesDir, "logs/crash_log.txt")
+                if (!logFile.exists()) {
+                    Toast.makeText(context, "No crash log yet", Toast.LENGTH_SHORT).show()
+                    return@OutlinedButton
+                }
+                val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", logFile)
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                context.startActivity(Intent.createChooser(intent, "Share crash log"))
+            },
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium
+        ) {
+            Text("Share Crash Log")
+        }
     }
 }
