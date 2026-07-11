@@ -1,6 +1,8 @@
 package com.hardlineforge.lala.ui.screens
 
 import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
@@ -67,9 +69,36 @@ fun AddEditScreen(
     var editNote by remember { mutableStateOf("") }
     var gpsLoading by remember { mutableStateOf(false) }
 
-    val hasLocPerm = remember {
-        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
-            android.content.pm.PackageManager.PERMISSION_GRANTED
+    var hasLocPerm by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    suspend fun captureAndFillLocation() {
+        gpsLoading = true
+        val loc = vm.captureLocation()
+        loc?.let {
+            gpsLat = it.latitude
+            gpsLon = it.longitude
+            if (locationName.isBlank()) {
+                locationName = "%.5f, %.5f".format(it.latitude, it.longitude)
+            }
+        }
+        gpsLoading = false
+    }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { results ->
+        hasLocPerm = results[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            results[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (hasLocPerm) {
+            scope.launch { captureAndFillLocation() }
+        }
     }
 
     LaunchedEffect(entryId) {
@@ -179,18 +208,15 @@ fun AddEditScreen(
                         CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                     } else {
                         IconButton(onClick = {
-                            if (!hasLocPerm) return@IconButton
-                            gpsLoading = true
-                            scope.launch {
-                                val loc = vm.captureLocation()
-                                loc?.let {
-                                    gpsLat = it.latitude
-                                    gpsLon = it.longitude
-                                    if (locationName.isBlank()) {
-                                        locationName = "%.5f, %.5f".format(it.latitude, it.longitude)
-                                    }
-                                }
-                                gpsLoading = false
+                            if (hasLocPerm) {
+                                scope.launch { captureAndFillLocation() }
+                            } else {
+                                locationPermissionLauncher.launch(
+                                    arrayOf(
+                                        Manifest.permission.ACCESS_FINE_LOCATION,
+                                        Manifest.permission.ACCESS_COARSE_LOCATION
+                                    )
+                                )
                             }
                         }) {
                             Icon(imageVector = Icons.Default.MyLocation, contentDescription = "Get GPS")

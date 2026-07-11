@@ -14,9 +14,9 @@ import com.hardlineforge.lala.ui.viewmodel.LalaViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(vm: LalaViewModel = hiltViewModel()) {
-    var darkMode by remember { mutableStateOf(false) }
-    var fontSize by remember { mutableStateOf("default") } // small, default, large, xlarge
-    var accentColor by remember { mutableStateOf("blue") } // blue, green, purple, orange
+    val darkMode by vm.darkMode.collectAsState()
+    val fontSize by vm.fontSize.collectAsState() // small, default, large, xlarge
+    val accentColor by vm.accentColor.collectAsState() // blue, green, purple, orange
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
@@ -54,7 +54,7 @@ fun SettingsScreen(vm: LalaViewModel = hiltViewModel()) {
         Text("Appearance", style = MaterialTheme.typography.titleMedium)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
             Text("Dark Mode")
-            Switch(checked = darkMode, onCheckedChange = { darkMode = it })
+            Switch(checked = darkMode, onCheckedChange = { vm.setDarkMode(it) })
         }
 
         Text("Font Size", style = MaterialTheme.typography.labelLarge)
@@ -62,7 +62,7 @@ fun SettingsScreen(vm: LalaViewModel = hiltViewModel()) {
             listOf("small", "default", "large", "xlarge").forEach { size ->
                 SegmentedButton(
                     selected = fontSize == size,
-                    onClick = { fontSize = size },
+                    onClick = { vm.setFontSize(size) },
                     shape = MaterialTheme.shapes.medium
                 ) { Text(size.replaceFirstChar { it.uppercase() }) }
             }
@@ -73,7 +73,7 @@ fun SettingsScreen(vm: LalaViewModel = hiltViewModel()) {
             listOf("blue", "green", "purple", "orange").forEach { color ->
                 SegmentedButton(
                     selected = accentColor == color,
-                    onClick = { accentColor = color },
+                    onClick = { vm.setAccentColor(color) },
                     shape = MaterialTheme.shapes.medium
                 ) { Text(color.replaceFirstChar { it.uppercase() }) }
             }

@@ -35,6 +35,27 @@ class LalaViewModel @Inject constructor(
         viewModelScope.launch { userPreferences.setPremium(premium) }
     }
 
+    val darkMode: StateFlow<Boolean> = userPreferences.darkMode
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    fun setDarkMode(enabled: Boolean) {
+        viewModelScope.launch { userPreferences.setDarkMode(enabled) }
+    }
+
+    val fontSize: StateFlow<String> = userPreferences.fontSize
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "default")
+
+    fun setFontSize(size: String) {
+        viewModelScope.launch { userPreferences.setFontSize(size) }
+    }
+
+    val accentColor: StateFlow<String> = userPreferences.accentColor
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "blue")
+
+    fun setAccentColor(color: String) {
+        viewModelScope.launch { userPreferences.setAccentColor(color) }
+    }
+
     /** Generates the case log PDF, embedding photos/filmstrips and stamping a watermark for free-tier users. */
     suspend fun generatePdfReport(entries: List<LogEntry>, file: File): File =
         pdfGenerator.generate(entries, file, isPremium.value)

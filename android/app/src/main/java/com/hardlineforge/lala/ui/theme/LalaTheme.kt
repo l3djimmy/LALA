@@ -1,6 +1,7 @@
 package com.hardlineforge.lala.ui.theme
 
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
@@ -12,6 +13,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isUnspecified
 import androidx.compose.ui.unit.sp
 
 val LalaLight = lightColorScheme(
@@ -64,11 +66,62 @@ val LalaShapes = Shapes(
     large = RoundedCornerShape(16.dp)
 )
 
+private val AccentColors = mapOf(
+    "blue" to null, // keep each scheme's own default blue
+    "green" to Color(0xFF34C759),
+    "purple" to Color(0xFFAF52DE),
+    "orange" to Color(0xFFFF9500)
+)
+
+private fun ColorScheme.withAccent(accent: String): ColorScheme {
+    val color = AccentColors[accent] ?: return this
+    return copy(primary = color, secondary = color, tertiary = color)
+}
+
+/** "small", "default", "large", "xlarge" -> a font-size multiplier. */
+fun fontScaleFor(fontSize: String): Float = when (fontSize) {
+    "small" -> 0.85f
+    "large" -> 1.15f
+    "xlarge" -> 1.3f
+    else -> 1f
+}
+
+private fun TextStyle.scaled(scale: Float): TextStyle = copy(
+    fontSize = if (fontSize.isUnspecified) fontSize else fontSize * scale,
+    lineHeight = if (lineHeight.isUnspecified) lineHeight else lineHeight * scale
+)
+
+private fun Typography.scaled(scale: Float): Typography {
+    if (scale == 1f) return this
+    return copy(
+        displayLarge = displayLarge.scaled(scale),
+        displayMedium = displayMedium.scaled(scale),
+        displaySmall = displaySmall.scaled(scale),
+        headlineLarge = headlineLarge.scaled(scale),
+        headlineMedium = headlineMedium.scaled(scale),
+        headlineSmall = headlineSmall.scaled(scale),
+        titleLarge = titleLarge.scaled(scale),
+        titleMedium = titleMedium.scaled(scale),
+        titleSmall = titleSmall.scaled(scale),
+        bodyLarge = bodyLarge.scaled(scale),
+        bodyMedium = bodyMedium.scaled(scale),
+        bodySmall = bodySmall.scaled(scale),
+        labelLarge = labelLarge.scaled(scale),
+        labelMedium = labelMedium.scaled(scale),
+        labelSmall = labelSmall.scaled(scale)
+    )
+}
+
 @Composable
-fun LalaTheme(darkTheme: Boolean = false, content: @Composable () -> Unit) {
+fun LalaTheme(
+    darkTheme: Boolean = false,
+    accentColor: String = "blue",
+    fontScale: Float = 1f,
+    content: @Composable () -> Unit
+) {
     MaterialTheme(
-        colorScheme = if (darkTheme) LalaDark else LalaLight,
-        typography = LalaTypography,
+        colorScheme = (if (darkTheme) LalaDark else LalaLight).withAccent(accentColor),
+        typography = LalaTypography.scaled(fontScale),
         shapes = LalaShapes,
         content = content
     )
