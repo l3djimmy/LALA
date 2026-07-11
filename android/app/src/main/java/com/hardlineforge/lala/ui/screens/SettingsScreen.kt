@@ -1,6 +1,8 @@
 package com.hardlineforge.lala.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,8 +18,37 @@ fun SettingsScreen(vm: LalaViewModel = hiltViewModel()) {
     var fontSize by remember { mutableStateOf("default") } // small, default, large, xlarge
     var accentColor by remember { mutableStateOf("blue") } // blue, green, purple, orange
 
-    Column(modifier = Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+    Column(
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
         Text("Settings", style = MaterialTheme.typography.headlineMedium)
+
+        // Subscription
+        val isPremium by vm.isPremium.collectAsState()
+        Text("Subscription", style = MaterialTheme.typography.titleMedium)
+        Card {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    if (isPremium) "Premium — no watermark on exported PDFs" else "Free tier — exported PDFs include a watermark",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Button(
+                    onClick = { vm.setPremium(!isPremium) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Text(if (isPremium) "Switch to Free Tier" else "Upgrade to Premium")
+                }
+                Text(
+                    "Placeholder toggle — real in-app purchases via Google Play Billing coming soon.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        HorizontalDivider()
 
         // Appearance
         Text("Appearance", style = MaterialTheme.typography.titleMedium)

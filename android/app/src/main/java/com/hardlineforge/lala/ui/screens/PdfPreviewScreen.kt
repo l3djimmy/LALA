@@ -14,7 +14,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.hardlineforge.lala.data.LogEntry
-import com.hardlineforge.lala.pdf.PdfGenerator
 import com.hardlineforge.lala.ui.viewmodel.LalaViewModel
 import java.io.File
 import java.io.FileOutputStream
@@ -40,12 +39,13 @@ fun PdfPreviewScreen(navController: NavHostController, vm: LalaViewModel = hiltV
         var saveError by remember { mutableStateOf<String?>(null) }
 
         val entries by vm.allEntries.collectAsState()
+        val isPremium by vm.isPremium.collectAsState()
 
         LaunchedEffect(entries) {
             if (entries.isNotEmpty()) {
                 val file = File(context.cacheDir, "temp_report.pdf")
                 pdfBytes = try {
-                    PdfGenerator(context).generate(entries, file).readBytes()
+                    vm.generatePdfReport(entries, file).readBytes()
                 } catch (e: Exception) {
                     Toast.makeText(context, "Failed to generate PDF: ${e.message}", Toast.LENGTH_LONG).show()
                     null
@@ -54,6 +54,22 @@ fun PdfPreviewScreen(navController: NavHostController, vm: LalaViewModel = hiltV
         }
 
         Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
+            if (!isPremium) {
+                Surface(color = MaterialTheme.colorScheme.errorContainer) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "Free version — reports include a watermark.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        TextButton(onClick = { navController.navigate("settings") }) { Text("Upgrade") }
+                    }
+                }
+            }
             if (pdfBytes == null) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()

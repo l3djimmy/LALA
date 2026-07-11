@@ -57,7 +57,7 @@ fun LalaApp() {
                 modifier = Modifier.padding(padding)
             ) {
                 composable("timeline") { TimelineScreen(navController) }
-                composable("map_view") { MapViewScreen() }
+                composable("map_view") { MapViewScreen(navController) }
                 composable("media_gallery") { MediaGalleryScreen(navController) }
                 composable("reports") { ReportsScreen(navController) }
                 composable("settings") { SettingsScreen() }

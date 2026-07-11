@@ -70,6 +70,8 @@ dependencies {
     implementation(libs.camera.camera2)
     implementation(libs.camera.lifecycle)
     implementation(libs.camera.view)
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.osmdroid.android)
     // Removed: Google Play Services Location
     // implementation(libs.google.play.services.location)
     // Using native Android LocationManager instead (GPS + Network providers)

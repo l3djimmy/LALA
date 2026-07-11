@@ -92,26 +92,3 @@ class LocationManager @Inject constructor(
         return location
     }
 }
-            Priority.PRIORITY_HIGH_ACCURACY, 5000L
-        ).apply {
-            setWaitForAccurateLocation(true)
-            setMinUpdateIntervalMillis(2000L)
-        }.build()
-
-        val callback = object : LocationCallback() {
-            override fun onLocationResult(result: LocationResult) {
-                result.lastLocation?.let { trySend(it) }
-            }
-        }
-
-        client.requestLocationUpdates(request, callback, Looper.getMainLooper())
-
-        awaitClose { client.removeLocationUpdates(callback) }
-    }
-
-    @SuppressLint("MissingPermission")
-    fun lastKnownLocation(onResult: (Location?) -> Unit) {
-        if (!hasPermission()) { onResult(null); return }
-        client.lastLocation.addOnSuccessListener { onResult(it) }
-    }
-}

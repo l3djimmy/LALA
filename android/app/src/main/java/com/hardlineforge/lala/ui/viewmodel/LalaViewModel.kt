@@ -6,10 +6,12 @@ import androidx.lifecycle.viewModelScope
 import com.hardlineforge.lala.data.*
 import com.hardlineforge.lala.location.LocationManager
 import com.hardlineforge.lala.media.VideoFrameExtractor
+import com.hardlineforge.lala.pdf.PdfGenerator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.io.File
 import java.time.Instant
 import javax.inject.Inject
 
@@ -18,11 +20,24 @@ import javax.inject.Inject
 class LalaViewModel @Inject constructor(
     private val repo: LogRepository,
     private val locationManager: LocationManager,
-    private val videoFrameExtractor: VideoFrameExtractor
+    private val videoFrameExtractor: VideoFrameExtractor,
+    private val userPreferences: UserPreferences,
+    private val pdfGenerator: PdfGenerator
 ) : ViewModel() {
 
     val frameExtractor: VideoFrameExtractor
         get() = videoFrameExtractor
+
+    val isPremium: StateFlow<Boolean> = userPreferences.isPremium
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    fun setPremium(premium: Boolean) {
+        viewModelScope.launch { userPreferences.setPremium(premium) }
+    }
+
+    /** Generates the case log PDF, embedding photos/filmstrips and stamping a watermark for free-tier users. */
+    suspend fun generatePdfReport(entries: List<LogEntry>, file: File): File =
+        pdfGenerator.generate(entries, file, isPremium.value)
 
     val allEntries: StateFlow<List<LogEntry>> = repo.getAllEntries()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
