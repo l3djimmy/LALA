@@ -31,8 +31,18 @@ class LogRepository @Inject constructor(
 
     suspend fun insertEntry(entry: LogEntry) = entryDao.insert(entry)
     suspend fun updateEntry(entry: LogEntry) = entryDao.update(entry)
-    suspend fun deleteEntry(entry: LogEntry) = entryDao.delete(entry)
-    suspend fun deleteEntryById(id: String) = entryDao.deleteById(id)
+
+    suspend fun deleteEntry(entry: LogEntry) {
+        entryDao.delete(entry)
+        photoDao.deleteByEntryId(entry.id)
+        videoDao.deleteByEntryId(entry.id)
+    }
+
+    suspend fun deleteEntryById(id: String) {
+        entryDao.deleteById(id)
+        photoDao.deleteByEntryId(id)
+        videoDao.deleteByEntryId(id)
+    }
 
     suspend fun getPhotos(entryId: String): List<Photo> = photoDao.getByEntryId(entryId)
     suspend fun insertPhoto(photo: Photo) = photoDao.insert(photo)

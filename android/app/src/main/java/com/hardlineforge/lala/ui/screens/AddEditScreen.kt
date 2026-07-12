@@ -303,27 +303,9 @@ fun AddEditScreen(
 
             // Media attachments
             Text("Media", style = MaterialTheme.typography.titleMedium)
+            // stableEntryId keeps captured photos/videos matched to whatever id this
+            // entry ends up saved under, without inserting a visible draft row early.
             val openCamera: () -> Unit = {
-                if (isNew) {
-                    // Photos/videos have a FK on entryId, so a draft row must exist before capturing.
-                    val instant = timestamp.atZone(ZoneId.of(timezone)).toInstant()
-                    vm.saveEntry(
-                        LogEntry(
-                            id = stableEntryId,
-                            timestamp = instant,
-                            timezone = timezone,
-                            gpsLat = gpsLat,
-                            gpsLon = gpsLon,
-                            category = category,
-                            locationName = locationName.ifBlank { null },
-                            comment = comment.trim(),
-                            tags = tags.trim(),
-                            createdAt = Instant.now(),
-                            updatedAt = Instant.now()
-                        ),
-                        isNew = true
-                    )
-                }
                 navController.navigate("camera_capture/$stableEntryId")
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

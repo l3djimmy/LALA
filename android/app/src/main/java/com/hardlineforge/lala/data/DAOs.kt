@@ -51,6 +51,9 @@ interface PhotoDao {
 
     @Delete
     suspend fun delete(photo: Photo)
+
+    @Query("DELETE FROM photos WHERE entryId = :entryId")
+    suspend fun deleteByEntryId(entryId: String)
 }
 
 @Dao
@@ -66,6 +69,9 @@ interface VideoDao {
 
     @Delete
     suspend fun delete(video: Video)
+
+    @Query("DELETE FROM videos WHERE entryId = :entryId")
+    suspend fun deleteByEntryId(entryId: String)
 }
 
 @Dao
