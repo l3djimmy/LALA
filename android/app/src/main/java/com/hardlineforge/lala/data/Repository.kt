@@ -64,4 +64,27 @@ class LogRepository @Inject constructor(
     fun getCustomCategories(): Flow<List<CustomCategory>> = categoryDao.getAll()
     suspend fun insertCustomCategory(category: CustomCategory) = categoryDao.insert(category)
     suspend fun deleteCustomCategory(category: CustomCategory) = categoryDao.delete(category)
+
+    /**
+     * Reattaches photos/videos whose entryId no longer matches any log entry (e.g. captures
+     * from a draft that was never saved) to a single auto-created "Recovered media" entry,
+     * so they become visible again instead of sitting invisibly in the database.
+     * Returns the number of recovered items.
+     */
+    suspend fun recoverOrphanedMedia(): Int {
+        val orphanPhotos = photoDao.getOrphaned()
+        val orphanVideos = videoDao.getOrphaned()
+        if (orphanPhotos.isEmpty() && orphanVideos.isEmpty()) return 0
+
+        val recovery = LogEntry(
+            title = "Recovered media",
+            category = "Other",
+            comment = "Photos/videos recovered from entries that were never saved. " +
+                "They were re-attached here automatically so they wouldn't be lost."
+        )
+        entryDao.insert(recovery)
+        if (orphanPhotos.isNotEmpty()) photoDao.reassign(orphanPhotos.map { it.id }, recovery.id)
+        if (orphanVideos.isNotEmpty()) videoDao.reassign(orphanVideos.map { it.id }, recovery.id)
+        return orphanPhotos.size + orphanVideos.size
+    }
 }

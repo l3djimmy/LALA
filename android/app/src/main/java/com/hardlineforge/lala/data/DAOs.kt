@@ -54,6 +54,12 @@ interface PhotoDao {
 
     @Query("DELETE FROM photos WHERE entryId = :entryId")
     suspend fun deleteByEntryId(entryId: String)
+
+    @Query("SELECT * FROM photos WHERE entryId NOT IN (SELECT id FROM log_entries)")
+    suspend fun getOrphaned(): List<Photo>
+
+    @Query("UPDATE photos SET entryId = :newEntryId WHERE id IN (:photoIds)")
+    suspend fun reassign(photoIds: List<String>, newEntryId: String)
 }
 
 @Dao
@@ -72,6 +78,12 @@ interface VideoDao {
 
     @Query("DELETE FROM videos WHERE entryId = :entryId")
     suspend fun deleteByEntryId(entryId: String)
+
+    @Query("SELECT * FROM videos WHERE entryId NOT IN (SELECT id FROM log_entries)")
+    suspend fun getOrphaned(): List<Video>
+
+    @Query("UPDATE videos SET entryId = :newEntryId WHERE id IN (:videoIds)")
+    suspend fun reassign(videoIds: List<String>, newEntryId: String)
 }
 
 @Dao

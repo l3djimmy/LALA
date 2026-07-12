@@ -30,7 +30,15 @@ fun LalaApp() {
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     LaunchedEffect(navBackStackEntry) {
-        navBackStackEntry?.destination?.route?.let { DebugLog.log("Nav", "-> $it") }
+        val entry = navBackStackEntry ?: return@LaunchedEffect
+        val pattern = entry.destination.route ?: return@LaunchedEffect
+        // Substitute {placeholders} with the actual arguments so the log shows real ids.
+        val resolved = entry.arguments?.let { args ->
+            Regex("\\{(\\w+)\\}").replace(pattern) { m ->
+                args.getString(m.groupValues[1]) ?: m.value
+            }
+        } ?: pattern
+        DebugLog.log("Nav", "-> $resolved")
     }
 
     ModalNavigationDrawer(

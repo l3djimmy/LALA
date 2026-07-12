@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavHostController
 import com.hardlineforge.lala.data.Photo
 import com.hardlineforge.lala.data.Video
@@ -203,17 +204,25 @@ fun CameraCaptureScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         var isCapturing by remember { mutableStateOf(false) }
-                        IconButton(onClick = {
+                        IconButton(
+                            enabled = !isCapturing,
+                            onClick = {
                             if (mode == CaptureMode.PHOTO) {
                                 if (isCapturing) return@IconButton
+                                if (!lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                                    DebugLog.log("Camera", "capture ignored: lifecycle=${lifecycleOwner.lifecycle.currentState}")
+                                    return@IconButton
+                                }
                                 isCapturing = true
                                 scope.launch {
                                     val ok = capturePhoto(context, imageCapture, executor, entryId, vm)
-                                    isCapturing = false
                                     if (ok) {
+                                        // Deliberately leave isCapturing=true: we're navigating away,
+                                        // and re-enabling would let a second tap race the unbinding camera.
                                         Toast.makeText(context, "Photo saved", Toast.LENGTH_SHORT).show()
                                         navController.popBackStack()
                                     } else {
+                                        isCapturing = false
                                         Toast.makeText(context, "Failed to capture photo", Toast.LENGTH_SHORT).show()
                                     }
                                 }

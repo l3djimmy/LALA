@@ -28,6 +28,8 @@ import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
@@ -70,25 +72,27 @@ fun AddEditScreen(
     val isNew = entryId == null
     val entry = if (!isNew) existing else null
 
-    // Stable across recompositions so photos/videos captured before the first Save
-    // attach to the same LogEntry id that ends up persisted.
-    val stableEntryId = remember { entryId ?: java.util.UUID.randomUUID().toString() }
+    // rememberSaveable (not remember): navigating to the camera removes this screen
+    // from composition, and plain remember state is destroyed — a fresh UUID was being
+    // generated on every return, orphaning captured photos under the abandoned id.
+    val stableEntryId = rememberSaveable { entryId ?: java.util.UUID.randomUUID().toString() }
 
-    // Fields
-    var title by remember { mutableStateOf("") }
-    var timestamp by remember { mutableStateOf(LocalDateTime.now()) }
-    var timezone by remember { mutableStateOf(ZoneId.systemDefault().id) }
-    var gpsLat by remember { mutableStateOf<Double?>(null) }
-    var gpsLon by remember { mutableStateOf<Double?>(null) }
-    var category by remember { mutableStateOf(defaultCats.first()) }
-    var locationName by remember { mutableStateOf("") }
-    var comment by remember { mutableStateOf("") }
-    var tags by remember { mutableStateOf("") }
+    // Fields — all saveable so in-progress input survives the camera round trip.
+    var title by rememberSaveable { mutableStateOf("") }
+    var timestamp by rememberSaveable(stateSaver = LocalDateTimeSaver) { mutableStateOf(LocalDateTime.now()) }
+    var timezone by rememberSaveable { mutableStateOf(ZoneId.systemDefault().id) }
+    var gpsLat by rememberSaveable { mutableStateOf<Double?>(null) }
+    var gpsLon by rememberSaveable { mutableStateOf<Double?>(null) }
+    var category by rememberSaveable { mutableStateOf(defaultCats.first()) }
+    var locationName by rememberSaveable { mutableStateOf("") }
+    var comment by rememberSaveable { mutableStateOf("") }
+    var tags by rememberSaveable { mutableStateOf("") }
+    var fieldsInitialized by rememberSaveable { mutableStateOf(false) }
     var showCategoryPicker by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var showEditNoteDialog by remember { mutableStateOf(false) }
-    var editNote by remember { mutableStateOf("") }
+    var editNote by rememberSaveable { mutableStateOf("") }
     var gpsLoading by remember { mutableStateOf(false) }
     var attachedPhotos by remember { mutableStateOf(listOf<Photo>()) }
 
@@ -159,16 +163,21 @@ fun AddEditScreen(
     }
 
     LaunchedEffect(existing) {
-        existing?.let { e ->
-            title = e.title
-            timestamp = e.timestamp.atZone(ZoneId.of(e.timezone)).toLocalDateTime()
-            timezone = e.timezone
-            gpsLat = e.gpsLat
-            gpsLon = e.gpsLon
-            category = e.category
-            locationName = e.locationName ?: ""
-            comment = e.comment
-            tags = e.tags
+        // Populate from the DB only once — on return from the camera the restored
+        // (possibly unsaved) field values must not be overwritten.
+        if (!fieldsInitialized) {
+            existing?.let { e ->
+                title = e.title
+                timestamp = e.timestamp.atZone(ZoneId.of(e.timezone)).toLocalDateTime()
+                timezone = e.timezone
+                gpsLat = e.gpsLat
+                gpsLon = e.gpsLon
+                category = e.category
+                locationName = e.locationName ?: ""
+                comment = e.comment
+                tags = e.tags
+                fieldsInitialized = true
+            }
         }
     }
 
@@ -481,3 +490,8 @@ fun AddEditScreen(
 }
 
 private fun Double.format(decimals: Int) = String.format("%.${decimals}f", this)
+
+private val LocalDateTimeSaver = Saver<LocalDateTime, String>(
+    save = { it.toString() },
+    restore = { LocalDateTime.parse(it) }
+)
