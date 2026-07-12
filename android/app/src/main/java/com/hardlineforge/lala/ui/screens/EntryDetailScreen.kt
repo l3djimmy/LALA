@@ -1,24 +1,33 @@
 package com.hardlineforge.lala.ui.screens
 
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.hardlineforge.lala.data.EditHistory
+import com.hardlineforge.lala.data.Photo
 import com.hardlineforge.lala.ui.theme.categoryColor
 import com.hardlineforge.lala.ui.viewmodel.LalaViewModel
 import java.time.ZoneId
@@ -154,17 +163,73 @@ fun EntryDetailScreen(
                 }
 
                 // Photos
+                var selectedPhoto by remember { mutableStateOf<Photo?>(null) }
                 if (photos.isNotEmpty()) {
                     HorizontalDivider()
                     Text("Photos (${photos.size})", style = MaterialTheme.typography.labelLarge)
-                    // Photo grid would go here
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(photos, key = { it.id }) { photo ->
+                            val bmp = remember(photo.uri) {
+                                BitmapFactory.decodeFile(photo.uri)?.asImageBitmap()
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .size(100.dp)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.small)
+                                    .clickable { selectedPhoto = photo }
+                            ) {
+                                if (bmp != null) {
+                                    Image(
+                                        bitmap = bmp,
+                                        contentDescription = "Photo",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
 
                 // Videos
                 if (videos.isNotEmpty()) {
                     HorizontalDivider()
                     Text("Videos (${videos.size})", style = MaterialTheme.typography.labelLarge)
-                    // Video player + filmstrip button would go here
+                    videos.forEach { video ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { navController.navigate("filmstrip/${video.id}") }
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Filled.Videocam, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("${video.durationSeconds}s — View filmstrip", style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+
+                selectedPhoto?.let { p ->
+                    AlertDialog(
+                        onDismissRequest = { selectedPhoto = null },
+                        confirmButton = {
+                            TextButton(onClick = { selectedPhoto = null }) { Text("Close") }
+                        },
+                        text = {
+                            val full = remember(p.uri) { BitmapFactory.decodeFile(p.uri)?.asImageBitmap() }
+                            if (full != null) {
+                                Image(
+                                    bitmap = full,
+                                    contentDescription = "Photo",
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentScale = ContentScale.Fit
+                                )
+                            } else {
+                                Text("Failed to load photo")
+                            }
+                        }
+                    )
                 }
 
                 // Export button

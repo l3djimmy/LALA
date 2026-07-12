@@ -131,6 +131,8 @@ class LalaViewModel @Inject constructor(
         viewModelScope.launch { repo.insertPhoto(photo) }
     }
 
+    suspend fun getPhotos(entryId: String): List<Photo> = repo.getPhotos(entryId)
+
     fun deletePhoto(photo: Photo) {
         viewModelScope.launch { repo.deletePhoto(photo) }
     }

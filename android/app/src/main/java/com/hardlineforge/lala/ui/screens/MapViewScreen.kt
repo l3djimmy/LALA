@@ -1,5 +1,12 @@
 package com.hardlineforge.lala.ui.screens
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.drawable.BitmapDrawable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -13,6 +20,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavHostController
 import com.hardlineforge.lala.ui.viewmodel.LalaViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
@@ -26,6 +35,20 @@ fun MapViewScreen(navController: NavHostController, vm: LalaViewModel = hiltView
     val geotagged = entries.filter { it.gpsLat != null && it.gpsLon != null }
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+
+    var thumbnails by remember { mutableStateOf(mapOf<String, Bitmap>()) }
+
+    LaunchedEffect(geotagged.map { it.id }) {
+        val result = mutableMapOf<String, Bitmap>()
+        for (entry in geotagged) {
+            val photoUri = vm.getPhotos(entry.id).firstOrNull()?.uri ?: continue
+            val thumb = withContext(Dispatchers.IO) {
+                BitmapFactory.decodeFile(photoUri)?.let { toMarkerThumbnail(it) }
+            }
+            if (thumb != null) result[entry.id] = thumb
+        }
+        thumbnails = result
+    }
 
     val mapView = remember {
         MapView(context).apply {
@@ -67,15 +90,21 @@ fun MapViewScreen(navController: NavHostController, vm: LalaViewModel = hiltView
                     update = { view ->
                         view.overlays.clear()
                         geotagged.forEach { entry ->
+                            val thumb = thumbnails[entry.id]
                             val marker = Marker(view).apply {
                                 position = GeoPoint(entry.gpsLat!!, entry.gpsLon!!)
-                                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                                 title = entry.category
                                 snippet = entry.comment.take(80)
                                 setOnMarkerClickListener { _, _ ->
                                     navController.navigate("entry_detail/${entry.id}")
                                     true
                                 }
+                            }
+                            if (thumb != null) {
+                                marker.icon = BitmapDrawable(context.resources, thumb)
+                                marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                            } else {
+                                marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                             }
                             view.overlays.add(marker)
                         }
@@ -97,4 +126,35 @@ fun MapViewScreen(navController: NavHostController, vm: LalaViewModel = hiltView
             }
         }
     }
+}
+
+/** Crops [source] to a square, scales it down, and draws it inside a white-ringed circle for use as a map marker. */
+private fun toMarkerThumbnail(source: Bitmap, sizePx: Int = 120, ringPx: Int = 6): Bitmap {
+    val side = minOf(source.width, source.height)
+    val cropped = Bitmap.createBitmap(
+        source,
+        (source.width - side) / 2,
+        (source.height - side) / 2,
+        side,
+        side
+    )
+    val scaled = Bitmap.createScaledBitmap(cropped, sizePx, sizePx, true)
+
+    val outputSize = sizePx + ringPx * 2
+    val output = Bitmap.createBitmap(outputSize, outputSize, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(output)
+    val center = outputSize / 2f
+
+    val ringPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
+    canvas.drawCircle(center, center, center, ringPaint)
+
+    val clipPath = Path().apply {
+        addCircle(center, center, sizePx / 2f, Path.Direction.CW)
+    }
+    canvas.save()
+    canvas.clipPath(clipPath)
+    canvas.drawBitmap(scaled, ringPx.toFloat(), ringPx.toFloat(), null)
+    canvas.restore()
+
+    return output
 }
