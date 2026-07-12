@@ -4,11 +4,16 @@ import android.Manifest
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.speech.RecognizerIntent
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -25,14 +30,20 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavHostController
 import com.hardlineforge.lala.data.LogEntry
+import com.hardlineforge.lala.data.Photo
 import com.hardlineforge.lala.ui.viewmodel.LalaViewModel
 import java.time.Instant
 import java.time.LocalDateTime
@@ -63,6 +74,7 @@ fun AddEditScreen(
     val stableEntryId = remember { entryId ?: java.util.UUID.randomUUID().toString() }
 
     // Fields
+    var title by remember { mutableStateOf("") }
     var timestamp by remember { mutableStateOf(LocalDateTime.now()) }
     var timezone by remember { mutableStateOf(ZoneId.systemDefault().id) }
     var gpsLat by remember { mutableStateOf<Double?>(null) }
@@ -77,6 +89,7 @@ fun AddEditScreen(
     var showEditNoteDialog by remember { mutableStateOf(false) }
     var editNote by remember { mutableStateOf("") }
     var gpsLoading by remember { mutableStateOf(false) }
+    var attachedPhotos by remember { mutableStateOf(listOf<Photo>()) }
 
     var hasLocPerm by remember {
         mutableStateOf(
@@ -143,6 +156,7 @@ fun AddEditScreen(
 
     LaunchedEffect(existing) {
         existing?.let { e ->
+            title = e.title
             timestamp = e.timestamp.atZone(ZoneId.of(e.timezone)).toLocalDateTime()
             timezone = e.timezone
             gpsLat = e.gpsLat
@@ -152,6 +166,33 @@ fun AddEditScreen(
             comment = e.comment
             tags = e.tags
         }
+    }
+
+    // Auto-tag GPS as soon as a brand-new entry is opened, instead of requiring a manual tap.
+    LaunchedEffect(isNew) {
+        if (isNew && gpsLat == null) {
+            if (hasLocPerm) {
+                captureAndFillLocation()
+            } else {
+                locationPermissionLauncher.launch(
+                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+                )
+            }
+        }
+    }
+
+    // Reload attached photos whenever this screen resumes (e.g. returning from the camera)
+    // so a just-captured photo shows up without requiring the entry to be saved first.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(stableEntryId) { attachedPhotos = vm.getPhotos(stableEntryId) }
+    DisposableEffect(lifecycleOwner, stableEntryId) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                scope.launch { attachedPhotos = vm.getPhotos(stableEntryId) }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     Scaffold(
@@ -170,6 +211,7 @@ fun AddEditScreen(
                         val instant = timestamp.atZone(ZoneId.of(timezone)).toInstant()
                         val newEntry = LogEntry(
                             id = stableEntryId,
+                            title = title.trim(),
                             timestamp = instant,
                             timezone = timezone,
                             gpsLat = gpsLat,
@@ -203,6 +245,18 @@ fun AddEditScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Spacer(modifier = Modifier.height(8.dp))
+
+            // Title
+            OutlinedTextField(
+                value = title,
+                onValueChange = { title = it },
+                label = { Text("Title") },
+                placeholder = { Text(if (isNew) "New Log Entry" else "Edit Entry") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Next),
+                singleLine = true
+            )
 
             // Date / Time row
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -327,6 +381,33 @@ fun AddEditScreen(
                 }
             }
 
+            if (attachedPhotos.isNotEmpty()) {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(top = 8.dp)
+                ) {
+                    items(attachedPhotos, key = { it.id }) { photo ->
+                        val bmp = remember(photo.uri) {
+                            BitmapFactory.decodeFile(photo.uri)?.asImageBitmap()
+                        }
+                        Box(
+                            modifier = Modifier
+                                .size(90.dp)
+                                .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.small)
+                        ) {
+                            if (bmp != null) {
+                                Image(
+                                    bitmap = bmp,
+                                    contentDescription = "Photo",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
@@ -368,6 +449,7 @@ fun AddEditScreen(
                     val instant = timestamp.atZone(ZoneId.of(timezone)).toInstant()
                     val newEntry = LogEntry(
                         id = entry!!.id,
+                        title = title.trim(),
                         timestamp = instant,
                         timezone = timezone,
                         gpsLat = gpsLat,

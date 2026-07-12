@@ -7,6 +7,7 @@ import java.util.UUID
 @Entity(tableName = "log_entries")
 data class LogEntry(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
+    val title: String = "",
     val timestamp: Instant = Instant.now(),
     val timezone: String = java.time.ZoneId.systemDefault().id,
     val gpsLat: Double? = null,

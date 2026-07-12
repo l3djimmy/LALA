@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -77,52 +78,61 @@ fun MapViewScreen(navController: NavHostController, vm: LalaViewModel = hiltView
         topBar = { TopAppBar(title = { Text("Map View") }) }
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
-            if (geotagged.isEmpty()) {
-                Text(
-                    "No geotagged entries yet.",
-                    modifier = Modifier.align(Alignment.Center),
-                    style = MaterialTheme.typography.bodyLarge
-                )
-            } else {
-                AndroidView(
-                    modifier = Modifier.fillMaxSize(),
-                    factory = { mapView },
-                    update = { view ->
-                        view.overlays.clear()
-                        geotagged.forEach { entry ->
-                            val thumb = thumbnails[entry.id]
-                            val marker = Marker(view).apply {
-                                position = GeoPoint(entry.gpsLat!!, entry.gpsLon!!)
-                                title = entry.category
-                                snippet = entry.comment.take(80)
-                                setOnMarkerClickListener { _, _ ->
-                                    navController.navigate("entry_detail/${entry.id}")
-                                    true
-                                }
+            AndroidView(
+                modifier = Modifier.fillMaxSize(),
+                factory = { mapView },
+                update = { view ->
+                    view.overlays.clear()
+                    geotagged.forEach { entry ->
+                        val thumb = thumbnails[entry.id]
+                        val marker = Marker(view).apply {
+                            position = GeoPoint(entry.gpsLat!!, entry.gpsLon!!)
+                            title = entry.category
+                            snippet = entry.comment.take(80)
+                            setOnMarkerClickListener { _, _ ->
+                                navController.navigate("entry_detail/${entry.id}")
+                                true
                             }
-                            if (thumb != null) {
-                                marker.icon = BitmapDrawable(context.resources, thumb)
-                                marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-                            } else {
-                                marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                            }
-                            view.overlays.add(marker)
                         }
-
-                        val lats = geotagged.map { it.gpsLat!! }
-                        val lons = geotagged.map { it.gpsLon!! }
-                        if (geotagged.size == 1) {
-                            view.controller.setCenter(GeoPoint(lats[0], lons[0]))
+                        if (thumb != null) {
+                            marker.icon = BitmapDrawable(context.resources, thumb)
+                            marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
                         } else {
-                            val box = BoundingBox(
-                                lats.max(), lons.max(),
-                                lats.min(), lons.min()
-                            )
-                            view.post { view.zoomToBoundingBox(box, false, 100) }
+                            marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                         }
-                        view.invalidate()
+                        view.overlays.add(marker)
                     }
-                )
+
+                    val lats = geotagged.map { it.gpsLat!! }
+                    val lons = geotagged.map { it.gpsLon!! }
+                    if (geotagged.size == 1) {
+                        view.controller.setZoom(15.0)
+                        view.controller.setCenter(GeoPoint(lats[0], lons[0]))
+                    } else if (geotagged.size > 1) {
+                        val box = BoundingBox(
+                            lats.max(), lons.max(),
+                            lats.min(), lons.min()
+                        )
+                        view.post { view.zoomToBoundingBox(box, false, 100) }
+                    } else {
+                        view.controller.setZoom(2.0)
+                    }
+                    view.invalidate()
+                }
+            )
+
+            if (geotagged.isEmpty()) {
+                Surface(
+                    modifier = Modifier.align(Alignment.TopCenter).padding(16.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Text(
+                        "No geotagged entries yet.",
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
             }
         }
     }

@@ -83,6 +83,10 @@ fun EntryDetailScreen(
             ) {
                 Spacer(modifier = Modifier.height(8.dp))
 
+                if (e.title.isNotBlank()) {
+                    Text(e.title, style = MaterialTheme.typography.headlineMedium)
+                }
+
                 // Category chip
                 Surface(
                     shape = MaterialTheme.shapes.small,

@@ -88,6 +88,9 @@ class PdfGenerator @Inject constructor(
         val ts = entry.timestamp.atZone(ZoneId.of(entry.timezone)).format(fmt)
 
         document.add(Paragraph("────────────────────────────────────────").setFontSize(8f))
+        if (entry.title.isNotBlank()) {
+            document.add(Paragraph(entry.title).setBold().setFontSize(13f))
+        }
         document.add(Paragraph("Entry: ${entry.category}").setBold())
         document.add(Paragraph("Date/Time: $ts"))
         entry.locationName?.let { document.add(Paragraph("Location: $it")) }
