@@ -47,6 +47,7 @@ fun PdfPreviewScreen(navController: NavHostController, vm: LalaViewModel = hiltV
                 pdfBytes = try {
                     vm.generatePdfReport(entries, file).readBytes()
                 } catch (e: Exception) {
+                    com.hardlineforge.lala.util.DebugLog.error("Pdf", "report generation failed (${entries.size} entries)", e)
                     Toast.makeText(context, "Failed to generate PDF: ${e.message}", Toast.LENGTH_LONG).show()
                     null
                 }

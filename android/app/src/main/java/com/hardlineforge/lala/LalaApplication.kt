@@ -3,6 +3,7 @@ package com.hardlineforge.lala
 import android.app.Application
 import android.preference.PreferenceManager
 import android.util.Log
+import com.hardlineforge.lala.util.DebugLog
 import dagger.hilt.android.HiltAndroidApp
 import org.osmdroid.config.Configuration
 import java.io.File
@@ -12,17 +13,19 @@ import java.time.Instant
 class LalaApplication : Application() {
     override fun onCreate() {
         super.onCreate()
+        DebugLog.init(this)
         Configuration.getInstance().load(this, PreferenceManager.getDefaultSharedPreferences(this))
         Configuration.getInstance().userAgentValue = packageName
         Configuration.getInstance().osmdroidTileCache = cacheDir.resolve("osmdroid/tiles")
         installCrashLogger()
     }
 
-    /** Logs uncaught exceptions to a file so they can be retrieved without adb, then re-throws to the default handler. */
+    /** Logs uncaught exceptions to files so they can be retrieved without adb, then re-throws to the default handler. */
     private fun installCrashLogger() {
         val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             try {
+                DebugLog.error("FATAL", "uncaught exception on thread ${thread.name}", throwable)
                 val logDir = File(filesDir, "logs").apply { mkdirs() }
                 val logFile = File(logDir, "crash_log.txt")
                 logFile.appendText(

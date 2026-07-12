@@ -45,6 +45,7 @@ import androidx.navigation.NavHostController
 import com.hardlineforge.lala.data.LogEntry
 import com.hardlineforge.lala.data.Photo
 import com.hardlineforge.lala.ui.viewmodel.LalaViewModel
+import com.hardlineforge.lala.util.DebugLog
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -103,12 +104,15 @@ fun AddEditScreen(
     suspend fun captureAndFillLocation() {
         gpsLoading = true
         val loc = vm.captureLocation()
-        loc?.let {
-            gpsLat = it.latitude
-            gpsLon = it.longitude
+        if (loc != null) {
+            DebugLog.log("GPS", "fix: %.5f, %.5f (accuracy=%.0fm)".format(loc.latitude, loc.longitude, loc.accuracy))
+            gpsLat = loc.latitude
+            gpsLon = loc.longitude
             if (locationName.isBlank()) {
-                locationName = "%.5f, %.5f".format(it.latitude, it.longitude)
+                locationName = "%.5f, %.5f".format(loc.latitude, loc.longitude)
             }
+        } else {
+            DebugLog.log("GPS", "no fix returned (permission=$hasLocPerm)")
         }
         gpsLoading = false
     }
@@ -188,7 +192,10 @@ fun AddEditScreen(
     DisposableEffect(lifecycleOwner, stableEntryId) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                scope.launch { attachedPhotos = vm.getPhotos(stableEntryId) }
+                scope.launch {
+                    attachedPhotos = vm.getPhotos(stableEntryId)
+                    DebugLog.log("Entry", "resumed: ${attachedPhotos.size} photo(s) attached to $stableEntryId")
+                }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)

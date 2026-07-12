@@ -40,6 +40,7 @@ import androidx.navigation.NavHostController
 import com.hardlineforge.lala.data.Photo
 import com.hardlineforge.lala.data.Video
 import com.hardlineforge.lala.ui.viewmodel.LalaViewModel
+import com.hardlineforge.lala.util.DebugLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -69,7 +70,10 @@ fun CameraCaptureScreen(
     }
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
-    ) { granted -> hasCameraPermission = granted }
+    ) { granted ->
+        DebugLog.log("Camera", "camera permission result: granted=$granted")
+        hasCameraPermission = granted
+    }
 
     var lensFacing by remember { mutableStateOf(CameraSelector.LENS_FACING_BACK) }
     var mode by remember { mutableStateOf(CaptureMode.PHOTO) }
@@ -107,6 +111,7 @@ fun CameraCaptureScreen(
                 provider.bindToLifecycle(lifecycleOwner, selector, preview, imgCap)
                 imageCapture = imgCap
                 videoCapture = null
+                DebugLog.log("Camera", "bound PHOTO use case (lens=$lensFacing)")
             } else {
                 val recorder = androidx.camera.video.Recorder.Builder()
                     .setExecutor(ContextCompat.getMainExecutor(context))
@@ -115,9 +120,11 @@ fun CameraCaptureScreen(
                 provider.bindToLifecycle(lifecycleOwner, selector, preview, vidCap)
                 videoCapture = vidCap
                 imageCapture = null
+                DebugLog.log("Camera", "bound VIDEO use case (lens=$lensFacing)")
             }
-        } catch (_: Exception) {
-            // Ignore camera bind errors on emulator / no-camera devices
+        } catch (e: Exception) {
+            DebugLog.error("Camera", "failed to bind camera (lens=$lensFacing, mode=$mode)", e)
+            Toast.makeText(context, "Camera unavailable: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -213,11 +220,15 @@ fun CameraCaptureScreen(
                             } else {
                                 if (!isRecording) {
                                     val rec = startRecording(context, videoCapture, entryId, vm)
+                                    DebugLog.log("Camera", "startRecording -> ${if (rec != null) "started" else "FAILED (videoCapture=${videoCapture != null})"}")
                                     if (rec != null) {
                                         recording = rec
                                         isRecording = true
+                                    } else {
+                                        Toast.makeText(context, "Failed to start recording", Toast.LENGTH_SHORT).show()
                                     }
                                 } else {
+                                    DebugLog.log("Camera", "stopping recording")
                                     recording?.close()
                                     recording = null
                                     isRecording = false
@@ -264,7 +275,11 @@ private suspend fun capturePhoto(
     entryId: String,
     vm: LalaViewModel
 ): Boolean {
-    val ic = imageCapture ?: return false
+    val ic = imageCapture
+    if (ic == null) {
+        DebugLog.log("Camera", "capturePhoto: imageCapture is null (camera never bound?)")
+        return false
+    }
     val dir = File(context.filesDir, "photos/$entryId").apply { mkdirs() }
     val file = File(dir, "${UUID.randomUUID()}.jpg")
     val opts = ImageCapture.OutputFileOptions.Builder(file).build()
@@ -273,9 +288,11 @@ private suspend fun capturePhoto(
         ic.takePicture(opts, executor,
             object : ImageCapture.OnImageSavedCallback {
                 override fun onError(exc: ImageCaptureException) {
+                    DebugLog.error("Camera", "takePicture failed (code=${exc.imageCaptureError})", exc)
                     if (cont.isActive) cont.resume(false)
                 }
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
+                    DebugLog.log("Camera", "photo saved: ${file.absolutePath} (${file.length()} bytes, entryId=$entryId)")
                     if (cont.isActive) cont.resume(true)
                 }
             }
@@ -310,10 +327,13 @@ private fun startRecording(
     return recorder.prepareRecording(context, opts)
         .start(ContextCompat.getMainExecutor(context)) { event ->
             when (event) {
+                is VideoRecordEvent.Start ->
+                    DebugLog.log("Camera", "video recording started: ${file.absolutePath}")
                 is VideoRecordEvent.Finalize -> {
                     if (!event.hasError()) {
                         val seconds = (event.recordingStats.recordedDurationNanos / 1_000_000_000)
                             .toInt().coerceAtLeast(1)
+                        DebugLog.log("Camera", "video finalized: ${seconds}s, ${file.length()} bytes (entryId=$entryId)")
                         vm.addVideo(
                             Video(
                                 entryId = entryId,
@@ -322,6 +342,8 @@ private fun startRecording(
                                 timestamp = Instant.now()
                             )
                         )
+                    } else {
+                        DebugLog.log("Camera", "video finalize ERROR code=${event.error}: ${event.cause?.message}")
                     }
                 }
             }

@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.hardlineforge.lala.ui.viewmodel.LalaViewModel
+import com.hardlineforge.lala.util.DebugLog
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -112,12 +113,17 @@ fun SettingsScreen(vm: LalaViewModel = hiltViewModel()) {
 
         // Debug
         Text("Debug", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "The app keeps a running log of what it does (navigation, camera, GPS, saves) plus any crashes. Share it to help diagnose problems.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
         val context = LocalContext.current
         OutlinedButton(
             onClick = {
-                val logFile = File(context.filesDir, "logs/crash_log.txt")
-                if (!logFile.exists()) {
-                    Toast.makeText(context, "No crash log yet", Toast.LENGTH_SHORT).show()
+                val logFile = File(context.filesDir, "logs/debug_log.txt")
+                if (!logFile.exists() || logFile.length() == 0L) {
+                    Toast.makeText(context, "No log recorded yet", Toast.LENGTH_SHORT).show()
                     return@OutlinedButton
                 }
                 val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", logFile)
@@ -126,12 +132,22 @@ fun SettingsScreen(vm: LalaViewModel = hiltViewModel()) {
                     putExtra(Intent.EXTRA_STREAM, uri)
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
-                context.startActivity(Intent.createChooser(intent, "Share crash log"))
+                context.startActivity(Intent.createChooser(intent, "Share debug log"))
             },
             modifier = Modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.medium
         ) {
-            Text("Share Crash Log")
+            Text("Share Debug Log")
+        }
+        OutlinedButton(
+            onClick = {
+                DebugLog.clear()
+                Toast.makeText(context, "Log cleared", Toast.LENGTH_SHORT).show()
+            },
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium
+        ) {
+            Text("Clear Debug Log")
         }
     }
 }

@@ -7,6 +7,7 @@ import com.hardlineforge.lala.data.*
 import com.hardlineforge.lala.location.LocationManager
 import com.hardlineforge.lala.media.VideoFrameExtractor
 import com.hardlineforge.lala.pdf.PdfGenerator
+import com.hardlineforge.lala.util.DebugLog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
@@ -107,6 +108,7 @@ class LalaViewModel @Inject constructor(
         editNote: String? = null
     ) {
         viewModelScope.launch {
+            DebugLog.log("Data", "saveEntry id=${entry.id} isNew=$isNew title='${entry.title}' gps=${entry.gpsLat != null}")
             if (isNew) {
                 repo.insertEntry(entry)
             } else {
