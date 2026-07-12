@@ -130,17 +130,25 @@ class LalaViewModel @Inject constructor(
     }
 
     fun addPhoto(photo: Photo) {
-        viewModelScope.launch { repo.insertPhoto(photo) }
+        viewModelScope.launch {
+            repo.insertPhoto(photo)
+            DebugLog.log("Data", "photo attached to entry ${photo.entryId}: ${photo.uri}")
+        }
     }
 
     suspend fun getPhotos(entryId: String): List<Photo> = repo.getPhotos(entryId)
+    fun observePhotos(entryId: String): Flow<List<Photo>> = repo.observePhotos(entryId)
+    fun observeVideos(entryId: String): Flow<List<Video>> = repo.observeVideos(entryId)
 
     fun deletePhoto(photo: Photo) {
         viewModelScope.launch { repo.deletePhoto(photo) }
     }
 
     fun addVideo(video: Video) {
-        viewModelScope.launch { repo.insertVideo(video) }
+        viewModelScope.launch {
+            repo.insertVideo(video)
+            DebugLog.log("Data", "video attached to entry ${video.entryId}: ${video.uri} (${video.durationSeconds}s)")
+        }
     }
 
     suspend fun getVideoById(id: String): Video? = repo.getVideoById(id)

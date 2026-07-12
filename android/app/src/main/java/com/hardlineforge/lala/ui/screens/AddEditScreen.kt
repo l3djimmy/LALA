@@ -11,6 +11,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -35,14 +36,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavHostController
 import com.hardlineforge.lala.data.LogEntry
 import com.hardlineforge.lala.data.Photo
@@ -94,7 +92,16 @@ fun AddEditScreen(
     var showEditNoteDialog by remember { mutableStateOf(false) }
     var editNote by rememberSaveable { mutableStateOf("") }
     var gpsLoading by remember { mutableStateOf(false) }
-    var attachedPhotos by remember { mutableStateOf(listOf<Photo>()) }
+
+    // Observed reactively (not queried once on resume): video finalization lands
+    // asynchronously AFTER this screen resumes, so a one-shot query missed it.
+    val attachedPhotos by remember(stableEntryId) { vm.observePhotos(stableEntryId) }
+        .collectAsState(initial = emptyList())
+    val attachedVideos by remember(stableEntryId) { vm.observeVideos(stableEntryId) }
+        .collectAsState(initial = emptyList())
+    LaunchedEffect(attachedPhotos.size, attachedVideos.size) {
+        DebugLog.log("Entry", "media for $stableEntryId: ${attachedPhotos.size} photo(s), ${attachedVideos.size} video(s)")
+    }
 
     var hasLocPerm by remember {
         mutableStateOf(
@@ -194,22 +201,6 @@ fun AddEditScreen(
         }
     }
 
-    // Reload attached photos whenever this screen resumes (e.g. returning from the camera)
-    // so a just-captured photo shows up without requiring the entry to be saved first.
-    val lifecycleOwner = LocalLifecycleOwner.current
-    LaunchedEffect(stableEntryId) { attachedPhotos = vm.getPhotos(stableEntryId) }
-    DisposableEffect(lifecycleOwner, stableEntryId) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                scope.launch {
-                    attachedPhotos = vm.getPhotos(stableEntryId)
-                    DebugLog.log("Entry", "resumed: ${attachedPhotos.size} photo(s) attached to $stableEntryId")
-                }
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
 
     Scaffold(
         topBar = {
@@ -397,7 +388,7 @@ fun AddEditScreen(
                 }
             }
 
-            if (attachedPhotos.isNotEmpty()) {
+            if (attachedPhotos.isNotEmpty() || attachedVideos.isNotEmpty()) {
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.padding(top = 8.dp)
@@ -417,6 +408,28 @@ fun AddEditScreen(
                                     contentDescription = "Photo",
                                     modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Crop
+                                )
+                            }
+                        }
+                    }
+                    items(attachedVideos, key = { it.id }) { video ->
+                        Box(
+                            modifier = Modifier
+                                .size(90.dp)
+                                .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.small)
+                                .clickable { navController.navigate("filmstrip/${video.id}") },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    imageVector = Icons.Default.Videocam,
+                                    contentDescription = "Video",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    "${video.durationSeconds}s",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }

@@ -46,6 +46,9 @@ interface PhotoDao {
     @Query("SELECT * FROM photos WHERE entryId = :entryId")
     suspend fun getByEntryId(entryId: String): List<Photo>
 
+    @Query("SELECT * FROM photos WHERE entryId = :entryId ORDER BY timestamp")
+    fun observeByEntryId(entryId: String): Flow<List<Photo>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(photo: Photo)
 
@@ -66,6 +69,9 @@ interface PhotoDao {
 interface VideoDao {
     @Query("SELECT * FROM videos WHERE entryId = :entryId")
     suspend fun getByEntryId(entryId: String): List<Video>
+
+    @Query("SELECT * FROM videos WHERE entryId = :entryId ORDER BY timestamp")
+    fun observeByEntryId(entryId: String): Flow<List<Video>>
 
     @Query("SELECT * FROM videos WHERE id = :id")
     suspend fun getById(id: String): Video?

@@ -45,10 +45,12 @@ class LogRepository @Inject constructor(
     }
 
     suspend fun getPhotos(entryId: String): List<Photo> = photoDao.getByEntryId(entryId)
+    fun observePhotos(entryId: String): Flow<List<Photo>> = photoDao.observeByEntryId(entryId)
     suspend fun insertPhoto(photo: Photo) = photoDao.insert(photo)
     suspend fun deletePhoto(photo: Photo) = photoDao.delete(photo)
 
     suspend fun getVideos(entryId: String): List<Video> = videoDao.getByEntryId(entryId)
+    fun observeVideos(entryId: String): Flow<List<Video>> = videoDao.observeByEntryId(entryId)
     suspend fun getVideoById(id: String): Video? = videoDao.getById(id)
     suspend fun insertVideo(video: Video) = videoDao.insert(video)
     suspend fun deleteVideo(video: Video) = videoDao.delete(video)

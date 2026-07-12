@@ -79,6 +79,7 @@ fun CameraCaptureScreen(
     var lensFacing by remember { mutableStateOf(CameraSelector.LENS_FACING_BACK) }
     var mode by remember { mutableStateOf(CaptureMode.PHOTO) }
     var isRecording by remember { mutableStateOf(false) }
+    var isFinalizing by remember { mutableStateOf(false) }
     var recording by remember { mutableStateOf<Recording?>(null) }
 
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
@@ -86,6 +87,17 @@ fun CameraCaptureScreen(
     val executor = remember { Executors.newSingleThreadExecutor() }
 
     val previewView = remember { PreviewView(context) }
+
+    // If the user backs out mid-recording, stop it so the file still finalizes and
+    // attaches to the entry (the finalize callback guards against popping twice).
+    DisposableEffect(Unit) {
+        onDispose {
+            recording?.let {
+                DebugLog.log("Camera", "screen disposed while recording — stopping so the video still finalizes")
+                it.stop()
+            }
+        }
+    }
 
     LaunchedEffect(hasCameraPermission, lensFacing, mode) {
         if (!hasCameraPermission) {
@@ -205,7 +217,7 @@ fun CameraCaptureScreen(
                     ) {
                         var isCapturing by remember { mutableStateOf(false) }
                         IconButton(
-                            enabled = !isCapturing,
+                            enabled = !isCapturing && !isFinalizing,
                             onClick = {
                             if (mode == CaptureMode.PHOTO) {
                                 if (isCapturing) return@IconButton
@@ -228,7 +240,20 @@ fun CameraCaptureScreen(
                                 }
                             } else {
                                 if (!isRecording) {
-                                    val rec = startRecording(context, videoCapture, entryId, vm)
+                                    val rec = startRecording(context, videoCapture, entryId, vm) { success ->
+                                        // Finalize is async — this fires ~1s+ after stop. Only now is the
+                                        // video registered, so only now do we leave the screen.
+                                        isFinalizing = false
+                                        isRecording = false
+                                        Toast.makeText(
+                                            context,
+                                            if (success) "Video saved" else "Video failed to save",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                        if (navController.currentDestination?.route?.startsWith("camera_capture") == true) {
+                                            navController.popBackStack()
+                                        }
+                                    }
                                     DebugLog.log("Camera", "startRecording -> ${if (rec != null) "started" else "FAILED (videoCapture=${videoCapture != null})"}")
                                     if (rec != null) {
                                         recording = rec
@@ -236,16 +261,21 @@ fun CameraCaptureScreen(
                                     } else {
                                         Toast.makeText(context, "Failed to start recording", Toast.LENGTH_SHORT).show()
                                     }
-                                } else {
-                                    DebugLog.log("Camera", "stopping recording")
-                                    recording?.close()
+                                } else if (!isFinalizing) {
+                                    DebugLog.log("Camera", "stopping recording, awaiting finalize")
+                                    isFinalizing = true
+                                    recording?.stop()
                                     recording = null
-                                    isRecording = false
-                                    navController.popBackStack()
                                 }
                             }
                         }) {
-                            if (mode == CaptureMode.PHOTO) {
+                            if (isFinalizing) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(28.dp),
+                                    strokeWidth = 3.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                            } else if (mode == CaptureMode.PHOTO) {
                                 Icon(
                                     imageVector = Icons.Default.PhotoCamera,
                                     contentDescription = "Take Photo",
@@ -325,7 +355,8 @@ private fun startRecording(
     context: Context,
     videoCapture: VideoCapture<*>?,
     entryId: String,
-    vm: LalaViewModel
+    vm: LalaViewModel,
+    onFinalized: (success: Boolean) -> Unit
 ): Recording? {
     val vc = videoCapture ?: return null
     val dir = File(context.filesDir, "videos/$entryId").apply { mkdirs() }
@@ -351,8 +382,10 @@ private fun startRecording(
                                 timestamp = Instant.now()
                             )
                         )
+                        onFinalized(true)
                     } else {
                         DebugLog.log("Camera", "video finalize ERROR code=${event.error}: ${event.cause?.message}")
+                        onFinalized(false)
                     }
                 }
             }
