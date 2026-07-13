@@ -1,13 +1,19 @@
 package com.hardlineforge.lala.data
 
+import android.content.Context
+import android.media.MediaMetadataRetriever
+import com.hardlineforge.lala.util.DebugLog
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import java.io.File
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class LogRepository @Inject constructor(
-    private val db: AppDatabase
+    private val db: AppDatabase,
+    @ApplicationContext private val context: Context
 ) {
     private val entryDao = db.logEntryDao()
     private val photoDao = db.photoDao()
@@ -66,6 +72,67 @@ class LogRepository @Inject constructor(
     fun getCustomCategories(): Flow<List<CustomCategory>> = categoryDao.getAll()
     suspend fun insertCustomCategory(category: CustomCategory) = categoryDao.insert(category)
     suspend fun deleteCustomCategory(category: CustomCategory) = categoryDao.delete(category)
+
+    /**
+     * Registers media files that exist on disk (files/photos/{entryId}/, files/videos/{entryId}/)
+     * but have no database row — e.g. the attach coroutine was killed between the file being
+     * written and the insert landing, or the process died mid-capture.
+     * Returns the number of files registered. Run before [recoverOrphanedMedia] so files under
+     * abandoned entryIds then get swept into the recovery entry.
+     */
+    suspend fun reconcileDiskMedia(): Int {
+        var registered = 0
+
+        val knownPhotoUris = photoDao.getAllUris().toHashSet()
+        File(context.filesDir, "photos").listFiles()?.forEach { entryDir ->
+            entryDir.listFiles()?.forEach { f ->
+                if (f.isFile && f.length() > 0 && f.absolutePath !in knownPhotoUris) {
+                    photoDao.insert(
+                        Photo(
+                            entryId = entryDir.name,
+                            uri = f.absolutePath,
+                            timestamp = Instant.ofEpochMilli(f.lastModified())
+                        )
+                    )
+                    DebugLog.log("Repair", "registered photo from disk: ${f.absolutePath} (entryId=${entryDir.name})")
+                    registered++
+                }
+            }
+        }
+
+        val knownVideoUris = videoDao.getAllUris().toHashSet()
+        File(context.filesDir, "videos").listFiles()?.forEach { entryDir ->
+            entryDir.listFiles()?.forEach { f ->
+                if (f.isFile && f.length() > 0 && f.absolutePath !in knownVideoUris) {
+                    videoDao.insert(
+                        Video(
+                            entryId = entryDir.name,
+                            uri = f.absolutePath,
+                            durationSeconds = videoDurationSeconds(f),
+                            timestamp = Instant.ofEpochMilli(f.lastModified())
+                        )
+                    )
+                    DebugLog.log("Repair", "registered video from disk: ${f.absolutePath} (entryId=${entryDir.name})")
+                    registered++
+                }
+            }
+        }
+
+        return registered
+    }
+
+    private fun videoDurationSeconds(file: File): Int = try {
+        val retriever = MediaMetadataRetriever()
+        try {
+            retriever.setDataSource(file.absolutePath)
+            ((retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                ?.toLongOrNull() ?: 0L) / 1000L).toInt().coerceAtLeast(1)
+        } finally {
+            retriever.release()
+        }
+    } catch (_: Exception) {
+        1
+    }
 
     /**
      * Reattaches photos/videos whose entryId no longer matches any log entry (e.g. captures

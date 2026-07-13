@@ -44,22 +44,19 @@ fun MediaGalleryScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        SingleChoiceSegmentedButtonRow {
-            SegmentedButton(
-                selected = filter == "all",
-                onClick = { filter = "all" },
-                shape = MaterialTheme.shapes.medium
-            ) { Text("All") }
-            SegmentedButton(
-                selected = filter == "photo",
-                onClick = { filter = "photo" },
-                shape = MaterialTheme.shapes.medium
-            ) { Icon(imageVector = Icons.Default.Image, contentDescription = null); Spacer(modifier = Modifier.width(4.dp)); Text("Photos") }
-            SegmentedButton(
-                selected = filter == "video",
-                onClick = { filter = "video" },
-                shape = MaterialTheme.shapes.medium
-            ) { Icon(imageVector = Icons.Default.Videocam, contentDescription = null); Spacer(modifier = Modifier.width(4.dp)); Text("Videos") }
+        // Equal-width segments sized to their content; labels stay single-line and the
+        // row grows vertically instead of overflowing at larger system font scales.
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+            listOf("all" to "All", "photo" to "Photos", "video" to "Videos").forEach { (key, label) ->
+                SegmentedButton(
+                    selected = filter == key,
+                    onClick = { filter = key },
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(label, maxLines = 1, softWrap = false)
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))

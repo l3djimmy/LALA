@@ -33,12 +33,16 @@ class LalaApplication : Application() {
 
         appScope.launch {
             try {
+                val registered = repository.reconcileDiskMedia()
+                if (registered > 0) {
+                    DebugLog.log("Repair", "registered $registered media file(s) found on disk without DB records")
+                }
                 val recovered = repository.recoverOrphanedMedia()
                 if (recovered > 0) {
                     DebugLog.log("Repair", "re-attached $recovered orphaned media item(s) to a 'Recovered media' entry")
                 }
             } catch (e: Exception) {
-                DebugLog.error("Repair", "orphaned media recovery failed", e)
+                DebugLog.error("Repair", "media reconciliation/recovery failed", e)
             }
         }
     }

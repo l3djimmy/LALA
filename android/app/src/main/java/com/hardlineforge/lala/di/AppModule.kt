@@ -9,6 +9,9 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -20,4 +23,9 @@ object AppModule {
         Room.databaseBuilder(ctx, AppDatabase::class.java, "lala.db")
             .fallbackToDestructiveMigration()
             .build()
+
+    /** App-lifetime scope for work that must outlive any single screen (e.g. media attach after capture). */
+    @Provides
+    @Singleton
+    fun provideAppScope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 }

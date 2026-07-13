@@ -61,6 +61,9 @@ interface PhotoDao {
     @Query("SELECT * FROM photos WHERE entryId NOT IN (SELECT id FROM log_entries)")
     suspend fun getOrphaned(): List<Photo>
 
+    @Query("SELECT uri FROM photos")
+    suspend fun getAllUris(): List<String>
+
     @Query("UPDATE photos SET entryId = :newEntryId WHERE id IN (:photoIds)")
     suspend fun reassign(photoIds: List<String>, newEntryId: String)
 }
@@ -87,6 +90,9 @@ interface VideoDao {
 
     @Query("SELECT * FROM videos WHERE entryId NOT IN (SELECT id FROM log_entries)")
     suspend fun getOrphaned(): List<Video>
+
+    @Query("SELECT uri FROM videos")
+    suspend fun getAllUris(): List<String>
 
     @Query("UPDATE videos SET entryId = :newEntryId WHERE id IN (:videoIds)")
     suspend fun reassign(videoIds: List<String>, newEntryId: String)

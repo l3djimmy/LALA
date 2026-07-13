@@ -9,6 +9,7 @@ import com.hardlineforge.lala.media.VideoFrameExtractor
 import com.hardlineforge.lala.pdf.PdfGenerator
 import com.hardlineforge.lala.util.DebugLog
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -23,7 +24,8 @@ class LalaViewModel @Inject constructor(
     private val locationManager: LocationManager,
     private val videoFrameExtractor: VideoFrameExtractor,
     private val userPreferences: UserPreferences,
-    private val pdfGenerator: PdfGenerator
+    private val pdfGenerator: PdfGenerator,
+    private val appScope: CoroutineScope
 ) : ViewModel() {
 
     val frameExtractor: VideoFrameExtractor
@@ -129,8 +131,12 @@ class LalaViewModel @Inject constructor(
         }
     }
 
+    // Media inserts run on the app-lifetime scope, NOT viewModelScope: the camera
+    // screen's ViewModel is destroyed when the user backs out, and a viewModelScope
+    // insert racing that destruction (video finalize after fast back-out) gets
+    // cancelled — silently dropping the attach.
     fun addPhoto(photo: Photo) {
-        viewModelScope.launch {
+        appScope.launch {
             repo.insertPhoto(photo)
             DebugLog.log("Data", "photo attached to entry ${photo.entryId}: ${photo.uri}")
         }
@@ -145,7 +151,7 @@ class LalaViewModel @Inject constructor(
     }
 
     fun addVideo(video: Video) {
-        viewModelScope.launch {
+        appScope.launch {
             repo.insertVideo(video)
             DebugLog.log("Data", "video attached to entry ${video.entryId}: ${video.uri} (${video.durationSeconds}s)")
         }

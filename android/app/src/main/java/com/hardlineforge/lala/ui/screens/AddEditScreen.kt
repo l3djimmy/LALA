@@ -202,6 +202,36 @@ fun AddEditScreen(
     }
 
 
+    val saveEntry: () -> Unit = saveEntry@{
+        if (comment.isBlank()) {
+            Toast.makeText(context, "A comment is required before saving", Toast.LENGTH_SHORT).show()
+            return@saveEntry
+        }
+
+        val instant = timestamp.atZone(ZoneId.of(timezone)).toInstant()
+        val newEntry = LogEntry(
+            id = stableEntryId,
+            title = title.trim(),
+            timestamp = instant,
+            timezone = timezone,
+            gpsLat = gpsLat,
+            gpsLon = gpsLon,
+            category = category,
+            locationName = locationName.ifBlank { null },
+            comment = comment.trim(),
+            tags = tags.trim(),
+            createdAt = entry?.createdAt ?: Instant.now(),
+            updatedAt = Instant.now()
+        )
+
+        if (!isNew && (comment != (existing?.comment ?: ""))) {
+            showEditNoteDialog = true
+        } else {
+            vm.saveEntry(newEntry, isNew)
+            navController.popBackStack()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -210,38 +240,24 @@ fun AddEditScreen(
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                     }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        if (comment.isBlank()) return@IconButton
-
-                        val instant = timestamp.atZone(ZoneId.of(timezone)).toInstant()
-                        val newEntry = LogEntry(
-                            id = stableEntryId,
-                            title = title.trim(),
-                            timestamp = instant,
-                            timezone = timezone,
-                            gpsLat = gpsLat,
-                            gpsLon = gpsLon,
-                            category = category,
-                            locationName = locationName.ifBlank { null },
-                            comment = comment.trim(),
-                            tags = tags.trim(),
-                            createdAt = entry?.createdAt ?: Instant.now(),
-                            updatedAt = Instant.now()
-                        )
-
-                        if (!isNew && (comment != (existing?.comment ?: ""))) {
-                            showEditNoteDialog = true
-                        } else {
-                            vm.saveEntry(newEntry, isNew)
-                            navController.popBackStack()
-                        }
-                    }) {
-                        Icon(Icons.Default.Check, "Save")
-                    }
                 }
             )
+        },
+        bottomBar = {
+            Surface(shadowElevation = 8.dp) {
+                Button(
+                    onClick = saveEntry,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 12.dp)
+                        .heightIn(min = 52.dp),
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Icon(Icons.Default.Check, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Save Entry", style = MaterialTheme.typography.titleMedium)
+                }
+            }
         }
     ) { padding ->
         Column(
