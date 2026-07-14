@@ -59,6 +59,13 @@ class LalaViewModel @Inject constructor(
         viewModelScope.launch { userPreferences.setAccentColor(color) }
     }
 
+    /** Exposed as a raw Flow so the UI can distinguish "not loaded yet" (null initial) from false. */
+    val onboardingComplete: Flow<Boolean> = userPreferences.onboardingComplete
+
+    fun setOnboardingComplete(complete: Boolean) {
+        viewModelScope.launch { userPreferences.setOnboardingComplete(complete) }
+    }
+
     /** Generates the case log PDF, embedding photos/filmstrips and stamping a watermark for free-tier users. */
     suspend fun generatePdfReport(entries: List<LogEntry>, file: File): File =
         pdfGenerator.generate(entries, file, isPremium.value)

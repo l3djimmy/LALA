@@ -111,6 +111,18 @@ fun SettingsScreen(vm: LalaViewModel = hiltViewModel()) {
 
         HorizontalDivider()
 
+        // Help
+        Text("Help", style = MaterialTheme.typography.titleMedium)
+        OutlinedButton(
+            onClick = { vm.setOnboardingComplete(false) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium
+        ) {
+            Text("View Tutorial")
+        }
+
+        HorizontalDivider()
+
         // Debug
         Text("Debug", style = MaterialTheme.typography.titleMedium)
         Text(

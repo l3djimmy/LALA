@@ -54,4 +54,4 @@ Any updates to this policy will be posted at this URL with a revised date.
 
 ## Contact
 
-Questions: jimmy@justwingingit.ai
+Questions: jimmy@hardlineforge.ai

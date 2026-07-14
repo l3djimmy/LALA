@@ -24,6 +24,14 @@ class UserPreferences @Inject constructor(
         val DARK_MODE = booleanPreferencesKey("dark_mode")
         val FONT_SIZE = stringPreferencesKey("font_size")
         val ACCENT_COLOR = stringPreferencesKey("accent_color")
+        val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
+    }
+
+    val onboardingComplete: Flow<Boolean> =
+        context.dataStore.data.map { it[Keys.ONBOARDING_COMPLETE] ?: false }
+
+    suspend fun setOnboardingComplete(complete: Boolean) {
+        context.dataStore.edit { it[Keys.ONBOARDING_COMPLETE] = complete }
     }
 
     val isPremium: Flow<Boolean> = context.dataStore.data.map { it[Keys.IS_PREMIUM] ?: false }

@@ -9,21 +9,35 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.hardlineforge.lala.ui.viewmodel.LalaViewModel
 import com.hardlineforge.lala.util.DebugLog
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LalaApp() {
+fun LalaApp(vm: LalaViewModel = hiltViewModel()) {
+    // null = flag not loaded yet (avoids flashing the timeline or the tutorial wrongly)
+    val onboardingComplete by vm.onboardingComplete.collectAsState(initial = null)
+    when (onboardingComplete) {
+        null -> return
+        false -> {
+            OnboardingScreen(onDone = { vm.setOnboardingComplete(true) })
+            return
+        }
+        true -> {}
+    }
+
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
