@@ -66,19 +66,30 @@ fun ReportsScreen(navController: NavHostController, vm: LalaViewModel = hiltView
 
         Spacer(modifier = Modifier.weight(1f))
 
+        var showExportChooser by remember { mutableStateOf(false) }
         Button(
-            onClick = {
-                val start = startDate.atStartOfDay(ZoneId.systemDefault()).toInstant()
-                val end = endDate.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant()
-                // Trigger PDF generation via ViewModel then navigate
-                navController.navigate("pdf_preview")
-            },
+            onClick = { showExportChooser = true },
             modifier = Modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.medium
         ) {
             Icon(imageVector = Icons.Default.PictureAsPdf, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
             Text("Generate PDF Report")
+        }
+        if (showExportChooser) {
+            val startMs = startDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            val endMs = endDate.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            ExportModeChooserDialog(
+                onDismiss = { showExportChooser = false },
+                onPrint = {
+                    showExportChooser = false
+                    navController.navigate("pdf_preview/print?start=$startMs&end=$endMs")
+                },
+                onDigital = {
+                    showExportChooser = false
+                    navController.navigate("pdf_preview/digital?start=$startMs&end=$endMs")
+                }
+            )
         }
     }
 }

@@ -55,4 +55,8 @@
 
 - Premium is a local placeholder toggle — integrate Google Play Billing before charging for it.
 - Import Data / Export All Data buttons in Settings are stubs.
-- PDF preview shows byte size, not a rendered preview.
+- Reports screen options (include photos / filmstrip fps) are not yet wired to the generator.
+- PDF export shows completion state + share/save, not a rendered page preview.
+- iText (PDF library) is AGPL: fine while the app source is public under a compatible license;
+  a commercial iText license or a migration to pdfbox-android (Apache-2.0) is needed if the
+  source ever goes closed.

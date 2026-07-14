@@ -237,13 +237,27 @@ fun EntryDetailScreen(
                 }
 
                 // Export button
+                var showExportChooser by remember { mutableStateOf(false) }
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(
-                    onClick = { navController.navigate("pdf_preview") },
+                    onClick = { showExportChooser = true },
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium
                 ) {
                     Text("Export This Entry to PDF")
+                }
+                if (showExportChooser) {
+                    ExportModeChooserDialog(
+                        onDismiss = { showExportChooser = false },
+                        onPrint = {
+                            showExportChooser = false
+                            navController.navigate("pdf_preview/print?entryId=${e.id}")
+                        },
+                        onDigital = {
+                            showExportChooser = false
+                            navController.navigate("pdf_preview/digital?entryId=${e.id}")
+                        }
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -273,3 +287,44 @@ fun EntryDetailScreen(
 }
 
 private fun Double.format(decimals: Int) = String.format("%.${decimals}f", this)
+
+/** Shared Print-vs-Digital export chooser used by EntryDetail and Reports. */
+@Composable
+fun ExportModeChooserDialog(
+    onDismiss: () -> Unit,
+    onPrint: () -> Unit,
+    onDigital: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Export as") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedButton(onClick = onPrint, modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium) {
+                    Column(modifier = Modifier.padding(vertical = 6.dp)) {
+                        Text("Print PDF", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            "Optimized for paper — videos become frame filmstrips",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                OutlinedButton(onClick = onDigital, modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium) {
+                    Column(modifier = Modifier.padding(vertical = 6.dp)) {
+                        Text("Digital PDF", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            "Optimized for sharing on-screen — original videos included as attachments",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
+}

@@ -16,10 +16,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.hardlineforge.lala.pdf.ExportMode
 import com.hardlineforge.lala.ui.viewmodel.LalaViewModel
 import com.hardlineforge.lala.util.DebugLog
 import kotlinx.coroutines.launch
@@ -100,7 +103,24 @@ fun LalaApp(vm: LalaViewModel = hiltViewModel()) {
                     val id = backStack.arguments?.getString("entryId") ?: ""
                     EntryDetailScreen(navController, entryId = id)
                 }
-                composable("pdf_preview") { PdfPreviewScreen(navController) }
+                composable(
+                    route = "pdf_preview/{mode}?entryId={entryId}&start={start}&end={end}",
+                    arguments = listOf(
+                        navArgument("mode") { type = NavType.StringType },
+                        navArgument("entryId") { type = NavType.StringType; nullable = true; defaultValue = null },
+                        navArgument("start") { type = NavType.StringType; nullable = true; defaultValue = null },
+                        navArgument("end") { type = NavType.StringType; nullable = true; defaultValue = null }
+                    )
+                ) { backStack ->
+                    val args = backStack.arguments
+                    PdfPreviewScreen(
+                        navController,
+                        initialMode = if (args?.getString("mode") == "digital") ExportMode.DIGITAL else ExportMode.PRINT,
+                        entryId = args?.getString("entryId"),
+                        startMs = args?.getString("start")?.toLongOrNull(),
+                        endMs = args?.getString("end")?.toLongOrNull()
+                    )
+                }
                 composable("camera_capture/{entryId}") { backStack ->
                     val id = backStack.arguments?.getString("entryId") ?: ""
                     CameraCaptureScreen(navController, entryId = id)
