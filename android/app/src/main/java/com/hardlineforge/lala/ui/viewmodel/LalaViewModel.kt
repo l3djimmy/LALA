@@ -6,10 +6,14 @@ import androidx.lifecycle.viewModelScope
 import com.hardlineforge.lala.data.*
 import com.hardlineforge.lala.location.LocationManager
 import com.hardlineforge.lala.media.VideoFrameExtractor
+import com.hardlineforge.lala.pdf.ExportManager
+import com.hardlineforge.lala.util.DebugLog
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.io.File
 import java.time.Instant
 import javax.inject.Inject
 
@@ -18,11 +22,49 @@ import javax.inject.Inject
 class LalaViewModel @Inject constructor(
     private val repo: LogRepository,
     private val locationManager: LocationManager,
-    private val videoFrameExtractor: VideoFrameExtractor
+    private val videoFrameExtractor: VideoFrameExtractor,
+    private val userPreferences: UserPreferences,
+    private val appScope: CoroutineScope,
+    val exportManager: ExportManager
 ) : ViewModel() {
 
     val frameExtractor: VideoFrameExtractor
         get() = videoFrameExtractor
+
+    val isPremium: StateFlow<Boolean> = userPreferences.isPremium
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    fun setPremium(premium: Boolean) {
+        viewModelScope.launch { userPreferences.setPremium(premium) }
+    }
+
+    val darkMode: StateFlow<Boolean> = userPreferences.darkMode
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    fun setDarkMode(enabled: Boolean) {
+        viewModelScope.launch { userPreferences.setDarkMode(enabled) }
+    }
+
+    val fontSize: StateFlow<String> = userPreferences.fontSize
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "default")
+
+    fun setFontSize(size: String) {
+        viewModelScope.launch { userPreferences.setFontSize(size) }
+    }
+
+    val accentColor: StateFlow<String> = userPreferences.accentColor
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "blue")
+
+    fun setAccentColor(color: String) {
+        viewModelScope.launch { userPreferences.setAccentColor(color) }
+    }
+
+    /** Exposed as a raw Flow so the UI can distinguish "not loaded yet" (null initial) from false. */
+    val onboardingComplete: Flow<Boolean> = userPreferences.onboardingComplete
+
+    fun setOnboardingComplete(complete: Boolean) {
+        viewModelScope.launch { userPreferences.setOnboardingComplete(complete) }
+    }
 
     val allEntries: StateFlow<List<LogEntry>> = repo.getAllEntries()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -71,6 +113,7 @@ class LalaViewModel @Inject constructor(
         editNote: String? = null
     ) {
         viewModelScope.launch {
+            DebugLog.log("Data", "saveEntry id=${entry.id} isNew=$isNew title='${entry.title}' gps=${entry.gpsLat != null}")
             if (isNew) {
                 repo.insertEntry(entry)
             } else {
@@ -91,16 +134,30 @@ class LalaViewModel @Inject constructor(
         }
     }
 
+    // Media inserts run on the app-lifetime scope, NOT viewModelScope: the camera
+    // screen's ViewModel is destroyed when the user backs out, and a viewModelScope
+    // insert racing that destruction (video finalize after fast back-out) gets
+    // cancelled — silently dropping the attach.
     fun addPhoto(photo: Photo) {
-        viewModelScope.launch { repo.insertPhoto(photo) }
+        appScope.launch {
+            repo.insertPhoto(photo)
+            DebugLog.log("Data", "photo attached to entry ${photo.entryId}: ${photo.uri}")
+        }
     }
+
+    suspend fun getPhotos(entryId: String): List<Photo> = repo.getPhotos(entryId)
+    fun observePhotos(entryId: String): Flow<List<Photo>> = repo.observePhotos(entryId)
+    fun observeVideos(entryId: String): Flow<List<Video>> = repo.observeVideos(entryId)
 
     fun deletePhoto(photo: Photo) {
         viewModelScope.launch { repo.deletePhoto(photo) }
     }
 
     fun addVideo(video: Video) {
-        viewModelScope.launch { repo.insertVideo(video) }
+        appScope.launch {
+            repo.insertVideo(video)
+            DebugLog.log("Data", "video attached to entry ${video.entryId}: ${video.uri} (${video.durationSeconds}s)")
+        }
     }
 
     suspend fun getVideoById(id: String): Video? = repo.getVideoById(id)

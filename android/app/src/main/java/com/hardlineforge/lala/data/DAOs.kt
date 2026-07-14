@@ -46,17 +46,35 @@ interface PhotoDao {
     @Query("SELECT * FROM photos WHERE entryId = :entryId")
     suspend fun getByEntryId(entryId: String): List<Photo>
 
+    @Query("SELECT * FROM photos WHERE entryId = :entryId ORDER BY timestamp")
+    fun observeByEntryId(entryId: String): Flow<List<Photo>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(photo: Photo)
 
     @Delete
     suspend fun delete(photo: Photo)
+
+    @Query("DELETE FROM photos WHERE entryId = :entryId")
+    suspend fun deleteByEntryId(entryId: String)
+
+    @Query("SELECT * FROM photos WHERE entryId NOT IN (SELECT id FROM log_entries)")
+    suspend fun getOrphaned(): List<Photo>
+
+    @Query("SELECT uri FROM photos")
+    suspend fun getAllUris(): List<String>
+
+    @Query("UPDATE photos SET entryId = :newEntryId WHERE id IN (:photoIds)")
+    suspend fun reassign(photoIds: List<String>, newEntryId: String)
 }
 
 @Dao
 interface VideoDao {
     @Query("SELECT * FROM videos WHERE entryId = :entryId")
     suspend fun getByEntryId(entryId: String): List<Video>
+
+    @Query("SELECT * FROM videos WHERE entryId = :entryId ORDER BY timestamp")
+    fun observeByEntryId(entryId: String): Flow<List<Video>>
 
     @Query("SELECT * FROM videos WHERE id = :id")
     suspend fun getById(id: String): Video?
@@ -66,6 +84,18 @@ interface VideoDao {
 
     @Delete
     suspend fun delete(video: Video)
+
+    @Query("DELETE FROM videos WHERE entryId = :entryId")
+    suspend fun deleteByEntryId(entryId: String)
+
+    @Query("SELECT * FROM videos WHERE entryId NOT IN (SELECT id FROM log_entries)")
+    suspend fun getOrphaned(): List<Video>
+
+    @Query("SELECT uri FROM videos")
+    suspend fun getAllUris(): List<String>
+
+    @Query("UPDATE videos SET entryId = :newEntryId WHERE id IN (:videoIds)")
+    suspend fun reassign(videoIds: List<String>, newEntryId: String)
 }
 
 @Dao

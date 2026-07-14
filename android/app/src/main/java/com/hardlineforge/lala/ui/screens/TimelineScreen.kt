@@ -111,6 +111,14 @@ private fun TimelineCard(entry: LogEntry, navController: NavHostController, vm: 
                     }
                 }
                 Spacer(modifier = Modifier.height(4.dp))
+                if (entry.title.isNotBlank()) {
+                    Text(
+                        text = entry.title,
+                        style = MaterialTheme.typography.titleSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
                 Text(
                     text = entry.comment,
                     style = MaterialTheme.typography.bodyMedium,

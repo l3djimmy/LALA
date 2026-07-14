@@ -17,12 +17,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.hardlineforge.lala.data.Photo
 import com.hardlineforge.lala.data.Video
 import com.hardlineforge.lala.ui.viewmodel.LalaViewModel
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,22 +44,19 @@ fun MediaGalleryScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        SingleChoiceSegmentedButtonRow {
-            SegmentedButton(
-                selected = filter == "all",
-                onClick = { filter = "all" },
-                shape = MaterialTheme.shapes.medium
-            ) { Text("All") }
-            SegmentedButton(
-                selected = filter == "photo",
-                onClick = { filter = "photo" },
-                shape = MaterialTheme.shapes.medium
-            ) { Icon(imageVector = Icons.Default.Image, contentDescription = null); Spacer(modifier = Modifier.width(4.dp)); Text("Photos") }
-            SegmentedButton(
-                selected = filter == "video",
-                onClick = { filter = "video" },
-                shape = MaterialTheme.shapes.medium
-            ) { Icon(imageVector = Icons.Default.Videocam, contentDescription = null); Spacer(modifier = Modifier.width(4.dp)); Text("Videos") }
+        // Equal-width segments sized to their content; labels stay single-line and the
+        // row grows vertically instead of overflowing at larger system font scales.
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+            listOf("all" to "All", "photo" to "Photos", "video" to "Videos").forEach { (key, label) ->
+                SegmentedButton(
+                    selected = filter == key,
+                    onClick = { filter = key },
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(label, maxLines = 1, softWrap = false)
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -86,56 +86,78 @@ fun MediaGalleryScreen(
     }
 }
 
+private val thumbTimeFormatter = DateTimeFormatter.ofPattern("MMM d, h:mm a")
+
 @Composable
 private fun PhotoThumbnail(photo: Photo) {
     val bmp = remember(photo.uri) {
         BitmapFactory.decodeFile(photo.uri)?.asImageBitmap()
     }
-    Box(
-        modifier = Modifier
-            .aspectRatio(1f)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-    ) {
-        if (bmp != null) {
-            Image(
-                bitmap = bmp,
-                contentDescription = photo.caption ?: "Photo",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-        } else {
-            Icon(
-                imageVector = Icons.Default.Image,
-                contentDescription = null,
-                modifier = Modifier.align(Alignment.Center),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+    Column {
+        Box(
+            modifier = Modifier
+                .aspectRatio(1f)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            if (bmp != null) {
+                Image(
+                    bitmap = bmp,
+                    contentDescription = photo.caption ?: "Photo",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Image,
+                    contentDescription = null,
+                    modifier = Modifier.align(Alignment.Center),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
+        Text(
+            text = photo.timestamp.atZone(ZoneId.systemDefault()).format(thumbTimeFormatter),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 4.dp)
+        )
     }
 }
 
 @Composable
 private fun VideoThumbnail(video: Video, navController: NavHostController) {
-    Box(
-        modifier = Modifier
-            .aspectRatio(1f)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .clickable { navController.navigate("filmstrip/${video.id}") },
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                imageVector = Icons.Default.Videocam,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                "${video.durationSeconds}s",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+    Column {
+        Box(
+            modifier = Modifier
+                .aspectRatio(1f)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .clickable { navController.navigate("filmstrip/${video.id}") },
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    imageVector = Icons.Default.Videocam,
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    "${video.durationSeconds}s",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
+        Text(
+            text = video.timestamp.atZone(ZoneId.systemDefault()).format(thumbTimeFormatter),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 4.dp)
+        )
     }
 }

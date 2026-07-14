@@ -1,7 +1,67 @@
 package com.hardlineforge.lala
 
 import android.app.Application
+import android.content.Context
+import android.util.Log
+import com.hardlineforge.lala.data.LogRepository
+import com.hardlineforge.lala.util.DebugLog
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import org.osmdroid.config.Configuration
+import java.io.File
+import java.time.Instant
+import javax.inject.Inject
 
 @HiltAndroidApp
-class LalaApplication : Application()
+class LalaApplication : Application() {
+
+    @Inject
+    lateinit var repository: LogRepository
+
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    override fun onCreate() {
+        super.onCreate()
+        DebugLog.init(this)
+        Configuration.getInstance().load(this, getSharedPreferences("osmdroid_prefs", Context.MODE_PRIVATE))
+        Configuration.getInstance().userAgentValue = packageName
+        Configuration.getInstance().osmdroidTileCache = cacheDir.resolve("osmdroid/tiles")
+        installCrashLogger()
+
+        appScope.launch {
+            try {
+                val registered = repository.reconcileDiskMedia()
+                if (registered > 0) {
+                    DebugLog.log("Repair", "registered $registered media file(s) found on disk without DB records")
+                }
+                val recovered = repository.recoverOrphanedMedia()
+                if (recovered > 0) {
+                    DebugLog.log("Repair", "re-attached $recovered orphaned media item(s) to a 'Recovered media' entry")
+                }
+            } catch (e: Exception) {
+                DebugLog.error("Repair", "media reconciliation/recovery failed", e)
+            }
+        }
+    }
+
+    /** Logs uncaught exceptions to files so they can be retrieved without adb, then re-throws to the default handler. */
+    private fun installCrashLogger() {
+        val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            try {
+                DebugLog.error("FATAL", "uncaught exception on thread ${thread.name}", throwable)
+                val logDir = File(filesDir, "logs").apply { mkdirs() }
+                val logFile = File(logDir, "crash_log.txt")
+                logFile.appendText(
+                    "\n===== ${Instant.now()} =====\n${Log.getStackTraceString(throwable)}\n"
+                )
+            } catch (_: Exception) {
+                // Best-effort only; never let logging itself block the crash handler.
+            }
+            previousHandler?.uncaughtException(thread, throwable)
+        }
+    }
+}

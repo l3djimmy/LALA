@@ -7,6 +7,7 @@ import java.util.UUID
 @Entity(tableName = "log_entries")
 data class LogEntry(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
+    val title: String = "",
     val timestamp: Instant = Instant.now(),
     val timezone: String = java.time.ZoneId.systemDefault().id,
     val gpsLat: Double? = null,
@@ -20,14 +21,12 @@ data class LogEntry(
     val updatedAt: Instant = Instant.now()
 )
 
+// No FK on entryId: photos/videos are captured (and attached to a not-yet-saved
+// draft entryId) before the parent LogEntry row exists, so this link is
+// intentionally soft rather than DB-enforced.
 @Entity(
     tableName = "photos",
-    foreignKeys = [ForeignKey(
-        entity = LogEntry::class,
-        parentColumns = ["id"],
-        childColumns = ["entryId"],
-        onDelete = ForeignKey.CASCADE
-    )]
+    indices = [Index("entryId")]
 )
 data class Photo(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
@@ -41,12 +40,7 @@ data class Photo(
 
 @Entity(
     tableName = "videos",
-    foreignKeys = [ForeignKey(
-        entity = LogEntry::class,
-        parentColumns = ["id"],
-        childColumns = ["entryId"],
-        onDelete = ForeignKey.CASCADE
-    )]
+    indices = [Index("entryId")]
 )
 data class Video(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
@@ -66,7 +60,8 @@ data class Video(
         parentColumns = ["id"],
         childColumns = ["videoId"],
         onDelete = ForeignKey.CASCADE
-    )]
+    )],
+    indices = [Index("videoId")]
 )
 data class VideoFrame(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),

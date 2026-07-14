@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Map pin with a punched-out GPS dot, kept inside the 66dp adaptive-icon safe zone -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M54,28 C42.4,28 33,37.4 33,49 C33,57.7 38.9,64.6 54,80 C69.1,64.6 75,57.7 75,49 C75,37.4 65.6,28 54,28 Z M54,41 a8,8 0 1,0 0,16 a8,8 0 1,0 0,-16 Z" />
+
+    <!-- Small accent dot beneath the pin tip, echoing a dropped marker -->
+    <path
+        android:fillColor="#80FFFFFF"
+        android:pathData="M54,84 m-2.5,0 a2.5,2.5 0 1,1 5,0 a2.5,2.5 0 1,1 -5,0" />
+</vector>

@@ -1,29 +1,66 @@
 package com.hardlineforge.lala.ui.screens
 
+import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.hardlineforge.lala.ui.viewmodel.LalaViewModel
+import com.hardlineforge.lala.util.DebugLog
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(vm: LalaViewModel = hiltViewModel()) {
-    var darkMode by remember { mutableStateOf(false) }
-    var fontSize by remember { mutableStateOf("default") } // small, default, large, xlarge
-    var accentColor by remember { mutableStateOf("blue") } // blue, green, purple, orange
+    val darkMode by vm.darkMode.collectAsState()
+    val fontSize by vm.fontSize.collectAsState() // small, default, large, xlarge
+    val accentColor by vm.accentColor.collectAsState() // blue, green, purple, orange
 
-    Column(modifier = Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+    Column(
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
         Text("Settings", style = MaterialTheme.typography.headlineMedium)
+
+        // Subscription
+        val isPremium by vm.isPremium.collectAsState()
+        Text("Subscription", style = MaterialTheme.typography.titleMedium)
+        Card {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    if (isPremium) "Premium — no watermark on exported PDFs" else "Free tier — exported PDFs include a watermark",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Button(
+                    onClick = { vm.setPremium(!isPremium) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Text(if (isPremium) "Switch to Free Tier" else "Upgrade to Premium")
+                }
+                Text(
+                    "Placeholder toggle — real in-app purchases via Google Play Billing coming soon.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        HorizontalDivider()
 
         // Appearance
         Text("Appearance", style = MaterialTheme.typography.titleMedium)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
             Text("Dark Mode")
-            Switch(checked = darkMode, onCheckedChange = { darkMode = it })
+            Switch(checked = darkMode, onCheckedChange = { vm.setDarkMode(it) })
         }
 
         Text("Font Size", style = MaterialTheme.typography.labelLarge)
@@ -31,7 +68,7 @@ fun SettingsScreen(vm: LalaViewModel = hiltViewModel()) {
             listOf("small", "default", "large", "xlarge").forEach { size ->
                 SegmentedButton(
                     selected = fontSize == size,
-                    onClick = { fontSize = size },
+                    onClick = { vm.setFontSize(size) },
                     shape = MaterialTheme.shapes.medium
                 ) { Text(size.replaceFirstChar { it.uppercase() }) }
             }
@@ -42,7 +79,7 @@ fun SettingsScreen(vm: LalaViewModel = hiltViewModel()) {
             listOf("blue", "green", "purple", "orange").forEach { color ->
                 SegmentedButton(
                     selected = accentColor == color,
-                    onClick = { accentColor = color },
+                    onClick = { vm.setAccentColor(color) },
                     shape = MaterialTheme.shapes.medium
                 ) { Text(color.replaceFirstChar { it.uppercase() }) }
             }
@@ -71,5 +108,58 @@ fun SettingsScreen(vm: LalaViewModel = hiltViewModel()) {
             }
         }
         // Add new category input would go here
+
+        HorizontalDivider()
+
+        // Help
+        Text("Help", style = MaterialTheme.typography.titleMedium)
+        OutlinedButton(
+            onClick = { vm.setOnboardingComplete(false) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium
+        ) {
+            Text("View Tutorial")
+        }
+
+        HorizontalDivider()
+
+        // Debug
+        Text("Debug", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "The app keeps a running log of what it does (navigation, camera, GPS, saves) plus any crashes. Share it to help diagnose problems.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        val context = LocalContext.current
+        OutlinedButton(
+            onClick = {
+                val logFile = File(context.filesDir, "logs/debug_log.txt")
+                if (!logFile.exists() || logFile.length() == 0L) {
+                    Toast.makeText(context, "No log recorded yet", Toast.LENGTH_SHORT).show()
+                    return@OutlinedButton
+                }
+                val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", logFile)
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                context.startActivity(Intent.createChooser(intent, "Share debug log"))
+            },
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium
+        ) {
+            Text("Share Debug Log")
+        }
+        OutlinedButton(
+            onClick = {
+                DebugLog.clear()
+                Toast.makeText(context, "Log cleared", Toast.LENGTH_SHORT).show()
+            },
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium
+        ) {
+            Text("Clear Debug Log")
+        }
     }
 }

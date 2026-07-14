@@ -1,7 +1,9 @@
 package com.hardlineforge.lala.ui.screens
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
@@ -35,17 +37,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavHostController
 import com.hardlineforge.lala.data.Photo
 import com.hardlineforge.lala.data.Video
 import com.hardlineforge.lala.ui.viewmodel.LalaViewModel
+import com.hardlineforge.lala.util.DebugLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.Executors
+import kotlin.coroutines.resume
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,19 +64,24 @@ fun CameraCaptureScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
 
-    var hasCameraPermission by remember {
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
-                android.content.pm.PackageManager.PERMISSION_GRANTED
-        )
-    }
+    fun granted(permission: String) =
+        ContextCompat.checkSelfPermission(context, permission) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+
+    var hasCameraPermission by remember { mutableStateOf(granted(Manifest.permission.CAMERA)) }
+    var hasAudioPermission by remember { mutableStateOf(granted(Manifest.permission.RECORD_AUDIO)) }
     val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { granted -> hasCameraPermission = granted }
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { results ->
+        DebugLog.log("Camera", "permission results: $results")
+        hasCameraPermission = results[Manifest.permission.CAMERA] ?: hasCameraPermission
+        hasAudioPermission = results[Manifest.permission.RECORD_AUDIO] ?: hasAudioPermission
+    }
 
     var lensFacing by remember { mutableStateOf(CameraSelector.LENS_FACING_BACK) }
     var mode by remember { mutableStateOf(CaptureMode.PHOTO) }
     var isRecording by remember { mutableStateOf(false) }
+    var isFinalizing by remember { mutableStateOf(false) }
     var recording by remember { mutableStateOf<Recording?>(null) }
 
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
@@ -79,9 +90,22 @@ fun CameraCaptureScreen(
 
     val previewView = remember { PreviewView(context) }
 
+    // If the user backs out mid-recording, stop it so the file still finalizes and
+    // attaches to the entry (the finalize callback guards against popping twice).
+    DisposableEffect(Unit) {
+        onDispose {
+            recording?.let {
+                DebugLog.log("Camera", "screen disposed while recording — stopping so the video still finalizes")
+                it.stop()
+            }
+        }
+    }
+
     LaunchedEffect(hasCameraPermission, lensFacing, mode) {
         if (!hasCameraPermission) {
-            permissionLauncher.launch(Manifest.permission.CAMERA)
+            permissionLauncher.launch(
+                arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
+            )
             return@LaunchedEffect
         }
 
@@ -104,6 +128,7 @@ fun CameraCaptureScreen(
                 provider.bindToLifecycle(lifecycleOwner, selector, preview, imgCap)
                 imageCapture = imgCap
                 videoCapture = null
+                DebugLog.log("Camera", "bound PHOTO use case (lens=$lensFacing)")
             } else {
                 val recorder = androidx.camera.video.Recorder.Builder()
                     .setExecutor(ContextCompat.getMainExecutor(context))
@@ -112,9 +137,11 @@ fun CameraCaptureScreen(
                 provider.bindToLifecycle(lifecycleOwner, selector, preview, vidCap)
                 videoCapture = vidCap
                 imageCapture = null
+                DebugLog.log("Camera", "bound VIDEO use case (lens=$lensFacing)")
             }
-        } catch (_: Exception) {
-            // Ignore camera bind errors on emulator / no-camera devices
+        } catch (e: Exception) {
+            DebugLog.error("Camera", "failed to bind camera (lens=$lensFacing, mode=$mode)", e)
+            Toast.makeText(context, "Camera unavailable: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -192,28 +219,67 @@ fun CameraCaptureScreen(
                             .padding(4.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        IconButton(onClick = {
+                        var isCapturing by remember { mutableStateOf(false) }
+                        IconButton(
+                            enabled = !isCapturing && !isFinalizing,
+                            onClick = {
                             if (mode == CaptureMode.PHOTO) {
+                                if (isCapturing) return@IconButton
+                                if (!lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                                    DebugLog.log("Camera", "capture ignored: lifecycle=${lifecycleOwner.lifecycle.currentState}")
+                                    return@IconButton
+                                }
+                                isCapturing = true
                                 scope.launch {
                                     val ok = capturePhoto(context, imageCapture, executor, entryId, vm)
-                                    if (ok) navController.popBackStack()
+                                    if (ok) {
+                                        // Deliberately leave isCapturing=true: we're navigating away,
+                                        // and re-enabling would let a second tap race the unbinding camera.
+                                        Toast.makeText(context, "Photo saved", Toast.LENGTH_SHORT).show()
+                                        navController.popBackStack()
+                                    } else {
+                                        isCapturing = false
+                                        Toast.makeText(context, "Failed to capture photo", Toast.LENGTH_SHORT).show()
+                                    }
                                 }
                             } else {
                                 if (!isRecording) {
-                                    val rec = startRecording(context, videoCapture, entryId, vm)
+                                    val rec = startRecording(context, videoCapture, entryId, vm, hasAudioPermission) { success ->
+                                        // Finalize is async — this fires ~1s+ after stop. Only now is the
+                                        // video registered, so only now do we leave the screen.
+                                        isFinalizing = false
+                                        isRecording = false
+                                        Toast.makeText(
+                                            context,
+                                            if (success) "Video saved" else "Video failed to save",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                        if (navController.currentDestination?.route?.startsWith("camera_capture") == true) {
+                                            navController.popBackStack()
+                                        }
+                                    }
+                                    DebugLog.log("Camera", "startRecording -> ${if (rec != null) "started" else "FAILED (videoCapture=${videoCapture != null})"}")
                                     if (rec != null) {
                                         recording = rec
                                         isRecording = true
+                                    } else {
+                                        Toast.makeText(context, "Failed to start recording", Toast.LENGTH_SHORT).show()
                                     }
-                                } else {
-                                    recording?.close()
+                                } else if (!isFinalizing) {
+                                    DebugLog.log("Camera", "stopping recording, awaiting finalize")
+                                    isFinalizing = true
+                                    recording?.stop()
                                     recording = null
-                                    isRecording = false
-                                    navController.popBackStack()
                                 }
                             }
                         }) {
-                            if (mode == CaptureMode.PHOTO) {
+                            if (isFinalizing) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(28.dp),
+                                    strokeWidth = 3.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                            } else if (mode == CaptureMode.PHOTO) {
                                 Icon(
                                     imageVector = Icons.Default.PhotoCamera,
                                     contentDescription = "Take Photo",
@@ -245,45 +311,58 @@ fun CameraCaptureScreen(
 
 private enum class CaptureMode { PHOTO, VIDEO }
 
-private fun capturePhoto(
+private suspend fun capturePhoto(
     context: Context,
     imageCapture: ImageCapture?,
     executor: java.util.concurrent.ExecutorService,
     entryId: String,
     vm: LalaViewModel
 ): Boolean {
-    val ic = imageCapture ?: return false
+    val ic = imageCapture
+    if (ic == null) {
+        DebugLog.log("Camera", "capturePhoto: imageCapture is null (camera never bound?)")
+        return false
+    }
     val dir = File(context.filesDir, "photos/$entryId").apply { mkdirs() }
     val file = File(dir, "${UUID.randomUUID()}.jpg")
     val opts = ImageCapture.OutputFileOptions.Builder(file).build()
-    var success = false
 
-    ic.takePicture(opts, executor,
-        object : ImageCapture.OnImageSavedCallback {
-            override fun onError(exc: ImageCaptureException) {
-                success = false
+    val success = suspendCancellableCoroutine<Boolean> { cont ->
+        ic.takePicture(opts, executor,
+            object : ImageCapture.OnImageSavedCallback {
+                override fun onError(exc: ImageCaptureException) {
+                    DebugLog.error("Camera", "takePicture failed (code=${exc.imageCaptureError})", exc)
+                    if (cont.isActive) cont.resume(false)
+                }
+                override fun onImageSaved(output: ImageCapture.OutputFileResults) {
+                    DebugLog.log("Camera", "photo saved: ${file.absolutePath} (${file.length()} bytes, entryId=$entryId)")
+                    if (cont.isActive) cont.resume(true)
+                }
             }
-            override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                vm.addPhoto(
-                    Photo(
-                        entryId = entryId,
-                        uri = file.absolutePath,
-                        timestamp = Instant.now()
-                    )
-                )
-                success = true
-            }
-        }
-    )
+        )
+    }
+
+    if (success) {
+        vm.addPhoto(
+            Photo(
+                entryId = entryId,
+                uri = file.absolutePath,
+                timestamp = Instant.now()
+            )
+        )
+    }
     return success
 }
 
 @Suppress("UNCHECKED_CAST")
+@SuppressLint("MissingPermission") // audio only enabled after RECORD_AUDIO is granted
 private fun startRecording(
     context: Context,
     videoCapture: VideoCapture<*>?,
     entryId: String,
-    vm: LalaViewModel
+    vm: LalaViewModel,
+    audioEnabled: Boolean,
+    onFinalized: (success: Boolean) -> Unit
 ): Recording? {
     val vc = videoCapture ?: return null
     val dir = File(context.filesDir, "videos/$entryId").apply { mkdirs() }
@@ -291,13 +370,18 @@ private fun startRecording(
     val opts = FileOutputOptions.Builder(file).build()
 
     val recorder = (vc as VideoCapture<androidx.camera.video.Recorder>).output
+    DebugLog.log("Camera", "starting recording (audio=${audioEnabled})")
     return recorder.prepareRecording(context, opts)
+        .apply { if (audioEnabled) withAudioEnabled() }
         .start(ContextCompat.getMainExecutor(context)) { event ->
             when (event) {
+                is VideoRecordEvent.Start ->
+                    DebugLog.log("Camera", "video recording started: ${file.absolutePath}")
                 is VideoRecordEvent.Finalize -> {
                     if (!event.hasError()) {
                         val seconds = (event.recordingStats.recordedDurationNanos / 1_000_000_000)
                             .toInt().coerceAtLeast(1)
+                        DebugLog.log("Camera", "video finalized: ${seconds}s, ${file.length()} bytes (entryId=$entryId)")
                         vm.addVideo(
                             Video(
                                 entryId = entryId,
@@ -306,6 +390,10 @@ private fun startRecording(
                                 timestamp = Instant.now()
                             )
                         )
+                        onFinalized(true)
+                    } else {
+                        DebugLog.log("Camera", "video finalize ERROR code=${event.error}: ${event.cause?.message}")
+                        onFinalized(false)
                     }
                 }
             }

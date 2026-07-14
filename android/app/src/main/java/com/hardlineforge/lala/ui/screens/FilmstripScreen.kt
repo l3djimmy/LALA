@@ -1,6 +1,11 @@
 package com.hardlineforge.lala.ui.screens
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -9,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,8 +26,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.hardlineforge.lala.data.VideoFrame
 import com.hardlineforge.lala.ui.viewmodel.LalaViewModel
+import com.hardlineforge.lala.util.MediaExporter
 import java.io.File
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,6 +44,7 @@ fun FilmstripScreen(
 
     var frames by remember { mutableStateOf(listOf<VideoFrame>()) }
     var isExtracting by remember { mutableStateOf(false) }
+    var isExporting by remember { mutableStateOf(false) }
     var selectedFrame by remember { mutableStateOf<VideoFrame?>(null) }
 
     LaunchedEffect(videoId) {
@@ -77,6 +86,34 @@ fun FilmstripScreen(
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                    }
+                },
+                actions = {
+                    IconButton(
+                        onClick = {
+                            if (frames.isNotEmpty() && !isExporting) {
+                                isExporting = true
+                                scope.launch {
+                                    val result = withContext(Dispatchers.IO) {
+                                        exportFilmstrip(context, frames)
+                                    }
+                                    isExporting = false
+                                    val message = if (result != null) {
+                                        "Filmstrip saved to $result"
+                                    } else {
+                                        "Failed to export filmstrip"
+                                    }
+                                    Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                                }
+                            }
+                        },
+                        enabled = frames.isNotEmpty() && !isExporting
+                    ) {
+                        if (isExporting) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        } else {
+                            Icon(Icons.Filled.FileDownload, "Export filmstrip")
+                        }
                     }
                 }
             )
@@ -179,4 +216,58 @@ private fun formatMs(ms: Int): String {
     val minutes = totalSeconds / 60
     val seconds = totalSeconds % 60
     return "%d:%02d".format(minutes, seconds)
+}
+
+/** Composites the extracted frames into one horizontal strip image, saves it to Downloads, and returns where it landed. */
+private fun exportFilmstrip(context: android.content.Context, frames: List<VideoFrame>): String? {
+    val frameHeight = 240
+    val labelHeight = 40
+    val spacing = 4
+    val labelPaint = Paint().apply {
+        color = Color.WHITE
+        textSize = 22f
+        textAlign = Paint.Align.CENTER
+        isAntiAlias = true
+    }
+
+    val decoded = frames.mapNotNull { frame ->
+        BitmapFactory.decodeFile(frame.uri)?.let { bmp ->
+            val scale = frameHeight.toFloat() / bmp.height
+            val scaledWidth = (bmp.width * scale).toInt().coerceAtLeast(1)
+            val scaled = Bitmap.createScaledBitmap(bmp, scaledWidth, frameHeight, true)
+            if (scaled !== bmp) bmp.recycle()
+            Triple(scaled, scaledWidth, frame.timeOffsetMs)
+        }
+    }
+    if (decoded.isEmpty()) return null
+
+    val totalWidth = decoded.sumOf { it.second } + spacing * (decoded.size + 1)
+    val strip = Bitmap.createBitmap(totalWidth, frameHeight + labelHeight, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(strip)
+    canvas.drawColor(Color.BLACK)
+
+    var x = spacing
+    decoded.forEach { (bmp, width, timeOffsetMs) ->
+        canvas.drawBitmap(bmp, x.toFloat(), 0f, null)
+        canvas.drawText(formatMs(timeOffsetMs), x + width / 2f, frameHeight + labelHeight - 12f, labelPaint)
+        x += width + spacing
+        bmp.recycle()
+    }
+
+    return try {
+        val bytes = java.io.ByteArrayOutputStream().use { out ->
+            strip.compress(Bitmap.CompressFormat.PNG, 100, out)
+            out.toByteArray()
+        }
+        MediaExporter.saveToDownloads(
+            context,
+            "Lala_Filmstrip_${System.currentTimeMillis()}.png",
+            "image/png",
+            bytes
+        )
+    } catch (_: Exception) {
+        null
+    } finally {
+        strip.recycle()
+    }
 }

@@ -8,23 +8,55 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.hardlineforge.lala.pdf.ExportMode
+import com.hardlineforge.lala.ui.viewmodel.LalaViewModel
+import com.hardlineforge.lala.util.DebugLog
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LalaApp() {
+fun LalaApp(vm: LalaViewModel = hiltViewModel()) {
+    // null = flag not loaded yet (avoids flashing the timeline or the tutorial wrongly)
+    val onboardingComplete by vm.onboardingComplete.collectAsState(initial = null)
+    when (onboardingComplete) {
+        null -> return
+        false -> {
+            OnboardingScreen(onDone = { vm.setOnboardingComplete(true) })
+            return
+        }
+        true -> {}
+    }
+
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    LaunchedEffect(navBackStackEntry) {
+        val entry = navBackStackEntry ?: return@LaunchedEffect
+        val pattern = entry.destination.route ?: return@LaunchedEffect
+        // Substitute {placeholders} with the actual arguments so the log shows real ids.
+        val resolved = entry.arguments?.let { args ->
+            Regex("\\{(\\w+)\\}").replace(pattern) { m ->
+                args.getString(m.groupValues[1]) ?: m.value
+            }
+        } ?: pattern
+        DebugLog.log("Nav", "-> $resolved")
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -36,17 +68,20 @@ fun LalaApp() {
             }
         }
     ) {
+        // Only top-level destinations use the global bar (with the drawer menu);
+        // detail screens bring their own back-button bars.
+        val topLevelRoutes = setOf("timeline", "map_view", "media_gallery", "reports", "settings")
         Scaffold(
             topBar = {
                 val currentRoute = currentRoute(navController)
-                if (currentRoute != null && currentRoute != "splash") {
+                if (currentRoute in topLevelRoutes) {
                     LalaTopBar(
-                        title = routeTitle(currentRoute),
+                        title = routeTitle(currentRoute ?: ""),
                         onMenuClick = { scope.launch { drawerState.open() } },
                         onSearchClick = {
                             navController.navigate("search")
                         },
-                        showMenu = currentRoute == "timeline"
+                        showMenu = true
                     )
                 }
             }
@@ -57,7 +92,7 @@ fun LalaApp() {
                 modifier = Modifier.padding(padding)
             ) {
                 composable("timeline") { TimelineScreen(navController) }
-                composable("map_view") { MapViewScreen() }
+                composable("map_view") { MapViewScreen(navController) }
                 composable("media_gallery") { MediaGalleryScreen(navController) }
                 composable("reports") { ReportsScreen(navController) }
                 composable("settings") { SettingsScreen() }
@@ -71,7 +106,24 @@ fun LalaApp() {
                     val id = backStack.arguments?.getString("entryId") ?: ""
                     EntryDetailScreen(navController, entryId = id)
                 }
-                composable("pdf_preview") { PdfPreviewScreen(navController) }
+                composable(
+                    route = "pdf_preview/{mode}?entryId={entryId}&start={start}&end={end}",
+                    arguments = listOf(
+                        navArgument("mode") { type = NavType.StringType },
+                        navArgument("entryId") { type = NavType.StringType; nullable = true; defaultValue = null },
+                        navArgument("start") { type = NavType.StringType; nullable = true; defaultValue = null },
+                        navArgument("end") { type = NavType.StringType; nullable = true; defaultValue = null }
+                    )
+                ) { backStack ->
+                    val args = backStack.arguments
+                    PdfPreviewScreen(
+                        navController,
+                        initialMode = if (args?.getString("mode") == "digital") ExportMode.DIGITAL else ExportMode.PRINT,
+                        entryId = args?.getString("entryId"),
+                        startMs = args?.getString("start")?.toLongOrNull(),
+                        endMs = args?.getString("end")?.toLongOrNull()
+                    )
+                }
                 composable("camera_capture/{entryId}") { backStack ->
                     val id = backStack.arguments?.getString("entryId") ?: ""
                     CameraCaptureScreen(navController, entryId = id)
