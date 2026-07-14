@@ -1,7 +1,7 @@
 package com.hardlineforge.lala
 
 import android.app.Application
-import android.preference.PreferenceManager
+import android.content.Context
 import android.util.Log
 import com.hardlineforge.lala.data.LogRepository
 import com.hardlineforge.lala.util.DebugLog
@@ -26,7 +26,7 @@ class LalaApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         DebugLog.init(this)
-        Configuration.getInstance().load(this, PreferenceManager.getDefaultSharedPreferences(this))
+        Configuration.getInstance().load(this, getSharedPreferences("osmdroid_prefs", Context.MODE_PRIVATE))
         Configuration.getInstance().userAgentValue = packageName
         Configuration.getInstance().osmdroidTileCache = cacheDir.resolve("osmdroid/tiles")
         installCrashLogger()

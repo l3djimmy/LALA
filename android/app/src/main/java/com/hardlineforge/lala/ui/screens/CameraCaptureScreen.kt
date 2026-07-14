@@ -1,6 +1,7 @@
 package com.hardlineforge.lala.ui.screens
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -63,17 +64,18 @@ fun CameraCaptureScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
 
-    var hasCameraPermission by remember {
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
-                android.content.pm.PackageManager.PERMISSION_GRANTED
-        )
-    }
+    fun granted(permission: String) =
+        ContextCompat.checkSelfPermission(context, permission) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+
+    var hasCameraPermission by remember { mutableStateOf(granted(Manifest.permission.CAMERA)) }
+    var hasAudioPermission by remember { mutableStateOf(granted(Manifest.permission.RECORD_AUDIO)) }
     val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        DebugLog.log("Camera", "camera permission result: granted=$granted")
-        hasCameraPermission = granted
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { results ->
+        DebugLog.log("Camera", "permission results: $results")
+        hasCameraPermission = results[Manifest.permission.CAMERA] ?: hasCameraPermission
+        hasAudioPermission = results[Manifest.permission.RECORD_AUDIO] ?: hasAudioPermission
     }
 
     var lensFacing by remember { mutableStateOf(CameraSelector.LENS_FACING_BACK) }
@@ -101,7 +103,9 @@ fun CameraCaptureScreen(
 
     LaunchedEffect(hasCameraPermission, lensFacing, mode) {
         if (!hasCameraPermission) {
-            permissionLauncher.launch(Manifest.permission.CAMERA)
+            permissionLauncher.launch(
+                arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
+            )
             return@LaunchedEffect
         }
 
@@ -240,7 +244,7 @@ fun CameraCaptureScreen(
                                 }
                             } else {
                                 if (!isRecording) {
-                                    val rec = startRecording(context, videoCapture, entryId, vm) { success ->
+                                    val rec = startRecording(context, videoCapture, entryId, vm, hasAudioPermission) { success ->
                                         // Finalize is async — this fires ~1s+ after stop. Only now is the
                                         // video registered, so only now do we leave the screen.
                                         isFinalizing = false
@@ -351,11 +355,13 @@ private suspend fun capturePhoto(
 }
 
 @Suppress("UNCHECKED_CAST")
+@SuppressLint("MissingPermission") // audio only enabled after RECORD_AUDIO is granted
 private fun startRecording(
     context: Context,
     videoCapture: VideoCapture<*>?,
     entryId: String,
     vm: LalaViewModel,
+    audioEnabled: Boolean,
     onFinalized: (success: Boolean) -> Unit
 ): Recording? {
     val vc = videoCapture ?: return null
@@ -364,7 +370,9 @@ private fun startRecording(
     val opts = FileOutputOptions.Builder(file).build()
 
     val recorder = (vc as VideoCapture<androidx.camera.video.Recorder>).output
+    DebugLog.log("Camera", "starting recording (audio=${audioEnabled})")
     return recorder.prepareRecording(context, opts)
+        .apply { if (audioEnabled) withAudioEnabled() }
         .start(ContextCompat.getMainExecutor(context)) { event ->
             when (event) {
                 is VideoRecordEvent.Start ->

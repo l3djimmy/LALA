@@ -5,7 +5,6 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.os.Environment
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -27,8 +26,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.hardlineforge.lala.data.VideoFrame
 import com.hardlineforge.lala.ui.viewmodel.LalaViewModel
+import com.hardlineforge.lala.util.MediaExporter
 import java.io.File
-import java.io.FileOutputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -100,7 +99,7 @@ fun FilmstripScreen(
                                     }
                                     isExporting = false
                                     val message = if (result != null) {
-                                        "Filmstrip saved to ${result.absolutePath}"
+                                        "Filmstrip saved to $result"
                                     } else {
                                         "Failed to export filmstrip"
                                     }
@@ -219,8 +218,8 @@ private fun formatMs(ms: Int): String {
     return "%d:%02d".format(minutes, seconds)
 }
 
-/** Composites the extracted frames into a single horizontal filmstrip image and saves it to disk. */
-private fun exportFilmstrip(context: android.content.Context, frames: List<VideoFrame>): File? {
+/** Composites the extracted frames into one horizontal strip image, saves it to Downloads, and returns where it landed. */
+private fun exportFilmstrip(context: android.content.Context, frames: List<VideoFrame>): String? {
     val frameHeight = 240
     val labelHeight = 40
     val spacing = 4
@@ -256,18 +255,16 @@ private fun exportFilmstrip(context: android.content.Context, frames: List<Video
     }
 
     return try {
-        val downloadsDir = try {
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-        } catch (_: Exception) {
-            null
+        val bytes = java.io.ByteArrayOutputStream().use { out ->
+            strip.compress(Bitmap.CompressFormat.PNG, 100, out)
+            out.toByteArray()
         }
-        val outFile = if (downloadsDir != null && downloadsDir.exists()) {
-            File(downloadsDir, "LALA_Filmstrip_${System.currentTimeMillis()}.png")
-        } else {
-            File(context.getExternalFilesDir(null), "LALA_Filmstrip_${System.currentTimeMillis()}.png")
-        }
-        FileOutputStream(outFile).use { out -> strip.compress(Bitmap.CompressFormat.PNG, 100, out) }
-        outFile
+        MediaExporter.saveToDownloads(
+            context,
+            "Lala_Filmstrip_${System.currentTimeMillis()}.png",
+            "image/png",
+            bytes
+        )
     } catch (_: Exception) {
         null
     } finally {

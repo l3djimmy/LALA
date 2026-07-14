@@ -1,6 +1,5 @@
 package com.hardlineforge.lala.ui.screens
 
-import android.os.Environment
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -15,8 +14,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.hardlineforge.lala.data.LogEntry
 import com.hardlineforge.lala.ui.viewmodel.LalaViewModel
+import com.hardlineforge.lala.util.MediaExporter
 import java.io.File
-import java.io.FileOutputStream
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,26 +87,18 @@ fun PdfPreviewScreen(navController: NavHostController, vm: LalaViewModel = hiltV
                     onClick = {
                         isSaving = true
                         saveError = null
-                        try {
-                            val downloadsDir = try {
-                                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-                            } catch (e: Exception) {
-                                null
-                            }
-                            val file = if (downloadsDir != null && downloadsDir.exists()) {
-                                File(downloadsDir, "LALA_Report_${System.currentTimeMillis()}.pdf")
-                            } else {
-                                File(context.getExternalFilesDir(null), "LALA_Report_${System.currentTimeMillis()}.pdf")
-                            }
-                            FileOutputStream(file).use { output ->
-                                output.write(pdfBytes)
-                            }
-                            Toast.makeText(context, "PDF saved to ${file.absolutePath}", Toast.LENGTH_LONG).show()
-                        } catch (e: Exception) {
-                            saveError = e.localizedMessage ?: "Failed to save PDF"
-                        } finally {
-                            isSaving = false
+                        val savedTo = MediaExporter.saveToDownloads(
+                            context,
+                            "Lala_Report_${System.currentTimeMillis()}.pdf",
+                            "application/pdf",
+                            pdfBytes!!
+                        )
+                        if (savedTo != null) {
+                            Toast.makeText(context, "PDF saved to $savedTo", Toast.LENGTH_LONG).show()
+                        } else {
+                            saveError = "Failed to save PDF"
                         }
+                        isSaving = false
                     },
                     modifier = Modifier
                         .fillMaxWidth()
