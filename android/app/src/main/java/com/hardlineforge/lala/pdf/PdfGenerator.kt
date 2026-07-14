@@ -18,8 +18,12 @@ import com.itextpdf.kernel.events.IEventHandler
 import com.itextpdf.kernel.events.PdfDocumentEvent
 import com.itextpdf.kernel.font.PdfFontFactory
 import com.itextpdf.kernel.geom.PageSize
+import com.itextpdf.kernel.geom.Rectangle
 import com.itextpdf.kernel.pdf.PdfDocument
+import com.itextpdf.kernel.pdf.PdfName
 import com.itextpdf.kernel.pdf.PdfWriter
+import com.itextpdf.kernel.pdf.annot.PdfAnnotation
+import com.itextpdf.kernel.pdf.annot.PdfFileAttachmentAnnotation
 import com.itextpdf.kernel.pdf.canvas.PdfCanvas
 import com.itextpdf.kernel.pdf.extgstate.PdfExtGState
 import com.itextpdf.kernel.pdf.filespec.PdfFileSpec
@@ -32,6 +36,9 @@ import com.itextpdf.layout.element.Paragraph
 import com.itextpdf.layout.element.Table
 import com.itextpdf.layout.properties.TextAlignment
 import com.itextpdf.layout.properties.UnitValue
+import com.itextpdf.layout.renderer.DrawContext
+import com.itextpdf.layout.renderer.IRenderer
+import com.itextpdf.layout.renderer.ImageRenderer
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -249,19 +256,15 @@ class PdfGenerator @Inject constructor(
         val stampFmt = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss").withZone(ZoneId.systemDefault())
         val fileName = uniqueName(usedNames, sanitizeFileName("video_${stampFmt.format(video.timestamp)}_${index + 1}.mp4"))
 
+        // Poster frame — never blank: fall back to a generic video placeholder image.
         val thumb = videoThumbnailWithPlayOverlay(vFile.absolutePath)
+        val poster: ByteArray
         if (thumb != null) {
-            try {
-                document.add(
-                    Image(ImageDataFactory.create(thumb))
-                        .setAutoScale(true)
-                        .setMaxWidth(UnitValue.createPercentValue(70f))
-                )
-            } catch (_: Exception) {
-                document.add(missingVideoPlaceholder(index, "thumbnail unavailable"))
-            }
+            poster = thumb
+            DebugLog.log("Export", "poster thumbnail extracted for $fileName")
         } else {
-            document.add(missingVideoPlaceholder(index, "thumbnail unavailable"))
+            poster = genericVideoPoster()
+            DebugLog.log("Export", "poster fallback used for $fileName (thumbnail extraction failed)")
         }
 
         try {
@@ -274,11 +277,29 @@ class PdfGenerator @Inject constructor(
                 stream,
                 "Lala video — ${entry.title.ifBlank { entry.category }}",
                 fileName,
-                null,
+                PdfName("video/mp4"),
                 null,
                 null
             )
+            // Document-level EmbeddedFiles entry: shows in the attachments panel.
             pdfDoc.addFileAttachment(fileName, spec)
+            DebugLog.log("Export", "attachment written: $fileName (${vFile.length()} bytes)")
+
+            // Poster with a FileAttachment (paperclip) annotation anchored to it, referencing
+            // the SAME file spec — the video is stored once. Viewers with annotation support
+            // (Acrobat desktop/mobile and others) let users open the video straight from the page.
+            val posterImage = Image(ImageDataFactory.create(poster))
+                .setAutoScale(true)
+                .setMaxWidth(UnitValue.createPercentValue(70f))
+            posterImage.setNextRenderer(
+                AttachmentPosterRenderer(
+                    posterImage,
+                    spec,
+                    "Open attachment to play: $fileName (${mmss(video.durationSeconds)})"
+                )
+            )
+            document.add(posterImage)
+
             attachments.add(
                 AttachedVideo(
                     fileName = fileName,
@@ -289,7 +310,6 @@ class PdfGenerator @Inject constructor(
                     gpsLon = video.gpsLon ?: entry.gpsLon
                 )
             )
-            DebugLog.log("Export", "embedded $fileName (${vFile.length()} bytes)")
             document.add(videoCaption(entry, video, fileName))
         } catch (e: Exception) {
             DebugLog.error("Export", "failed to embed ${video.uri}", e)
@@ -341,9 +361,9 @@ class PdfGenerator @Inject constructor(
         val gpsLon = video.gpsLon ?: entry.gpsLon
         val gps = if (gpsLat != null && gpsLon != null) "%.5f, %.5f".format(gpsLat, gpsLon) else "unknown"
         val text = if (fileName != null) {
-            "Video attached to this PDF — open the attachments panel to view. " +
-                "Filename: $fileName, Duration: ${mmss(video.durationSeconds)}, " +
-                "Recorded: ${fmt.format(video.timestamp)}, Location: $gps"
+            "Video attached — open the paperclip/attachment in your PDF viewer to play " +
+                "(duration ${mmss(video.durationSeconds)}). " +
+                "Filename: $fileName, Recorded: ${fmt.format(video.timestamp)}, Location: $gps"
         } else {
             "Duration: ${mmss(video.durationSeconds)} · Recorded: ${fmt.format(video.timestamp)} · Location: $gps"
         }
@@ -394,23 +414,7 @@ class PdfGenerator @Inject constructor(
             val h = (frame.height * scale).toInt().coerceAtLeast(1)
             val bmp = Bitmap.createScaledBitmap(frame, w, h, true)
                 .copy(Bitmap.Config.ARGB_8888, true)
-
-            val canvas = Canvas(bmp)
-            val cx = w / 2f
-            val cy = h / 2f
-            val r = minOf(w, h) / 5f
-            canvas.drawCircle(cx, cy, r, Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = android.graphics.Color.argb(150, 0, 0, 0)
-            })
-            val tri = Path().apply {
-                moveTo(cx - r * 0.35f, cy - r * 0.55f)
-                lineTo(cx - r * 0.35f, cy + r * 0.55f)
-                lineTo(cx + r * 0.62f, cy)
-                close()
-            }
-            canvas.drawPath(tri, Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = android.graphics.Color.WHITE
-            })
+            drawPlayOverlay(Canvas(bmp), w, h)
             toJpeg(bmp, 85)
         } catch (e: Exception) {
             DebugLog.error("Export", "thumbnail failed for $path", e)
@@ -418,6 +422,41 @@ class PdfGenerator @Inject constructor(
         } finally {
             runCatching { retriever.release() }
         }
+    }
+
+    /** Generic dark poster with a play icon, for when frame extraction fails — never a blank region. */
+    private fun genericVideoPoster(): ByteArray {
+        val w = DIGITAL_THUMB_WIDTH_PX
+        val h = w * 9 / 16
+        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bmp)
+        canvas.drawColor(android.graphics.Color.rgb(40, 40, 46))
+        drawPlayOverlay(canvas, w, h)
+        val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.argb(200, 255, 255, 255)
+            textSize = h / 12f
+            textAlign = Paint.Align.CENTER
+        }
+        canvas.drawText("VIDEO — preview unavailable", w / 2f, h * 0.88f, textPaint)
+        return toJpeg(bmp, 85)
+    }
+
+    private fun drawPlayOverlay(canvas: Canvas, w: Int, h: Int) {
+        val cx = w / 2f
+        val cy = h / 2f
+        val r = minOf(w, h) / 5f
+        canvas.drawCircle(cx, cy, r, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.argb(150, 0, 0, 0)
+        })
+        val tri = Path().apply {
+            moveTo(cx - r * 0.35f, cy - r * 0.55f)
+            lineTo(cx - r * 0.35f, cy + r * 0.55f)
+            lineTo(cx + r * 0.62f, cy)
+            close()
+        }
+        canvas.drawPath(tri, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.WHITE
+        })
     }
 
     private fun scaleToHeight(src: Bitmap, height: Int): Bitmap {
@@ -481,6 +520,38 @@ class PdfGenerator @Inject constructor(
             document.add(table)
         }
     }
+}
+
+/**
+ * Draws the poster image normally, then anchors a FileAttachment (paperclip) annotation
+ * to the image's top-right corner, referencing the already-embedded file spec — so the
+ * video bytes are stored once and reachable both from the page and the attachments panel.
+ */
+private class AttachmentPosterRenderer(
+    image: Image,
+    private val spec: PdfFileSpec,
+    private val note: String
+) : ImageRenderer(image) {
+
+    override fun draw(drawContext: DrawContext) {
+        super.draw(drawContext)
+        try {
+            val bbox = occupiedArea.bBox
+            val rect = Rectangle(bbox.right - 24f, bbox.top - 28f, 20f, 26f)
+            val annotation = PdfFileAttachmentAnnotation(rect, spec).apply {
+                contents = com.itextpdf.kernel.pdf.PdfString(note)
+                put(PdfName.Name, PdfName("Paperclip"))
+                setFlags(PdfAnnotation.PRINT)
+            }
+            drawContext.document.getPage(occupiedArea.pageNumber).addAnnotation(annotation)
+            DebugLog.log("Export", "attachment annotation added (page ${occupiedArea.pageNumber})")
+        } catch (e: Exception) {
+            DebugLog.error("Export", "failed to add attachment annotation", e)
+        }
+    }
+
+    override fun getNextRenderer(): IRenderer =
+        AttachmentPosterRenderer(modelElement as Image, spec, note)
 }
 
 private class WatermarkEventHandler : IEventHandler {
