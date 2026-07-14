@@ -68,17 +68,20 @@ fun LalaApp(vm: LalaViewModel = hiltViewModel()) {
             }
         }
     ) {
+        // Only top-level destinations use the global bar (with the drawer menu);
+        // detail screens bring their own back-button bars.
+        val topLevelRoutes = setOf("timeline", "map_view", "media_gallery", "reports", "settings")
         Scaffold(
             topBar = {
                 val currentRoute = currentRoute(navController)
-                if (currentRoute != null && currentRoute != "splash") {
+                if (currentRoute in topLevelRoutes) {
                     LalaTopBar(
-                        title = routeTitle(currentRoute),
+                        title = routeTitle(currentRoute ?: ""),
                         onMenuClick = { scope.launch { drawerState.open() } },
                         onSearchClick = {
                             navController.navigate("search")
                         },
-                        showMenu = currentRoute == "timeline"
+                        showMenu = true
                     )
                 }
             }
