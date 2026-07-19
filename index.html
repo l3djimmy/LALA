@@ -196,6 +196,32 @@
     color:var(--steel); background:var(--panel); font-weight:600;
   }
 
+  /* HOME ANVIL */
+  .badge{
+    display:inline-block; padding:5px 14px; border:1px solid var(--quench); color:var(--quench);
+    border-radius:20px; font-size:0.7rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase;
+    margin-bottom:18px;
+  }
+  .anvil-panel{
+    background:linear-gradient(160deg, var(--panel), var(--bg-alt));
+    border:1px solid var(--line); border-radius:10px; padding:56px 40px;
+    position:relative; overflow:hidden;
+  }
+  .anvil-panel::after{
+    content:""; position:absolute; width:340px; height:340px; border-radius:50%;
+    background:radial-gradient(circle, rgba(77,127,143,0.18), transparent 70%);
+    top:-140px; left:-100px;
+  }
+  .anvil-grid{display:grid; gap:36px; position:relative; z-index:1;}
+  @media(min-width:840px){ .anvil-grid{grid-template-columns:1.1fr 0.9fr; align-items:center;} }
+  .anvil-panel h2{font-size:clamp(1.6rem,3.6vw,2.2rem); margin-bottom:10px;}
+  .anvil-tagline{color:var(--quench); font-weight:700; margin-bottom:16px; font-size:1rem;}
+  .anvil-desc{color:var(--steel-dim); max-width:52ch;}
+  .mark.quench{background:linear-gradient(155deg, var(--quench), #294c58);}
+  .mini-features{list-style:none; display:flex; flex-direction:column; gap:14px;}
+  .mini-features li{display:flex; gap:12px; align-items:flex-start; font-size:0.92rem; color:var(--steel);}
+  .mini-features li::before{content:"—"; color:var(--quench); font-weight:700; flex:none;}
+
   /* DOWNLOAD CTA */
   .cta{
     background:linear-gradient(160deg, var(--panel), var(--bg-alt));
@@ -232,6 +258,7 @@
       <a href="#features">Features</a>
       <a href="#categories">Use Cases</a>
       <a href="#how">How It Works</a>
+      <a href="#home-anvil">Home Anvil</a>
       <a href="#download">Download</a>
     </div>
     <a class="btn btn-primary navcta" href="#download">Get LALA</a>
@@ -434,6 +461,32 @@
     </div>
   </section>
 
+  <section class="section" id="home-anvil" style="padding-top:0;">
+    <div class="wrap">
+      <div class="anvil-panel">
+        <div class="anvil-grid">
+          <div>
+            <span class="mark quench" style="width:42px;height:42px;font-size:1.1rem;margin-bottom:18px;">A</span>
+            <div><span class="badge">Coming Soon</span></div>
+            <h2>Home Anvil</h2>
+            <p class="anvil-tagline">A digital owner's manual for your house.</p>
+            <p class="anvil-desc">
+              Log every appliance, system, and manual for your home once. Home Anvil keeps
+              warranties, service history, and documentation together in one place — and once
+              it's activated, it works fully offline. No subscription, no account, nothing to renew.
+            </p>
+          </div>
+          <ul class="mini-features">
+            <li>Appliance &amp; home system manuals, all in one place</li>
+            <li>Warranty &amp; service history tracking</li>
+            <li>Fully offline after activation — no ongoing connection needed</li>
+            <li>No account or subscription required</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
 </main>
 
 <footer>
@@ -445,6 +498,7 @@
     <div class="foot-links">
       <a href="#features">Features</a>
       <a href="#how">How It Works</a>
+      <a href="#home-anvil">Home Anvil</a>
       <a href="#download">Download</a>
     </div>
   </div>
