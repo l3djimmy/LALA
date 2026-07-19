@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hard Line Forge — LALA Case Log</title>
+<meta name="description" content="LALA Case Log by Hard Line Forge — timestamp, geotag, and document what's happening on your property. Built for people who won't let it slide.">
+<style>
+  :root{
+    --bg: #16140f;
+    --bg-alt: #1d1a15;
+    --panel: #221e18;
+    --line: #373127;
+    --ember: #c96a35;
+    --ember-bright: #e08a52;
+    --ember-dim: #8f4a24;
+    --quench: #4d7f8f;
+    --steel: #cfd2d1;
+    --steel-dim: #948e83;
+    --white: #f3efe8;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:
+      repeating-linear-gradient(115deg, rgba(255,255,255,0.015) 0 2px, transparent 2px 5px),
+      radial-gradient(ellipse 70% 45% at 50% -8%, rgba(201,106,53,0.10), transparent),
+      var(--bg);
+    color:var(--steel);
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    line-height:1.6;
+    overflow-x:hidden;
+  }
+  h1,h2,h3,h4{
+    font-family: "Segoe UI", system-ui, sans-serif;
+    font-weight:800;
+    font-stretch:condensed;
+    color:var(--white);
+    letter-spacing:-0.01em;
+  }
+  a{color:inherit; text-decoration:none;}
+  img{max-width:100%; display:block;}
+  .wrap{max-width:1160px; margin:0 auto; padding:0 24px;}
+
+  /* NAV */
+  header{
+    position:sticky; top:0; z-index:50;
+    background:rgba(22,20,15,0.85);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  nav{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 24px; max-width:1160px; margin:0 auto;
+  }
+  .brand{display:flex; align-items:center; gap:10px; font-weight:800; font-size:1.1rem; color:var(--white); letter-spacing:0.06em;}
+  .brand .mark{
+    width:34px; height:34px; flex:none;
+    background:linear-gradient(155deg, var(--ember), var(--ember-dim));
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    display:flex; align-items:center; justify-content:center;
+    font-family:Georgia, serif; font-weight:900; color:var(--bg); font-size:1rem;
+  }
+  .brand small{display:block; font-size:0.6rem; color:var(--steel-dim); letter-spacing:0.18em; font-weight:600;}
+  .navlinks{display:flex; gap:28px; font-size:0.9rem; font-weight:600; letter-spacing:0.03em;}
+  .navlinks a{color:var(--steel-dim); transition:color .15s;}
+  .navlinks a:hover{color:var(--ember);}
+  .btn{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:12px 24px; border-radius:2px;
+    font-weight:700; font-size:0.85rem; letter-spacing:0.06em; text-transform:uppercase;
+    border:1px solid var(--ember);
+    transition:all .15s;
+    cursor:pointer;
+  }
+  .btn-primary{background:var(--ember); color:var(--bg);}
+  .btn-primary:hover{background:var(--ember-bright); box-shadow:0 0 24px rgba(201,106,53,0.35);}
+  .btn-ghost{background:transparent; color:var(--white); border-color:var(--line);}
+  .btn-ghost:hover{border-color:var(--ember); color:var(--ember);}
+  .navcta{display:none;}
+  @media(min-width:720px){ .navcta{display:inline-flex;} }
+  @media(max-width:719px){ .navlinks{display:none;} }
+
+  /* HERO */
+  .hero{padding:96px 0 72px; position:relative;}
+  .hero::before{
+    content:""; position:absolute; inset:0; z-index:-1;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size:40px 40px;
+    mask-image:linear-gradient(to bottom, black, transparent);
+  }
+  .hero-grid{display:grid; gap:56px; align-items:center;}
+  @media(min-width:940px){ .hero-grid{grid-template-columns:1.1fr 0.9fr;} }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    color:var(--ember); font-weight:700; font-size:0.78rem;
+    letter-spacing:0.16em; text-transform:uppercase; margin-bottom:20px;
+  }
+  .eyebrow::before{content:""; width:20px; height:2px; background:var(--ember);}
+  .hero h1{font-size:clamp(2.2rem, 5vw, 3.4rem); line-height:1.05; margin-bottom:20px;}
+  .hero h1 span{color:var(--ember);}
+  .hero p.lead{font-size:1.08rem; color:var(--steel-dim); max-width:52ch; margin-bottom:32px;}
+  .hero-actions{display:flex; flex-wrap:wrap; gap:14px; margin-bottom:28px;}
+  .hero-note{font-size:0.8rem; color:var(--steel-dim); letter-spacing:0.02em;}
+  .hero-note b{color:var(--steel);}
+
+  /* PHONE MOCK */
+  .phone{
+    width:280px; margin:0 auto; border-radius:34px;
+    background:#100e0a; border:1px solid var(--line);
+    padding:14px; box-shadow:0 30px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.02);
+  }
+  .phone-screen{
+    background:var(--bg-alt); border-radius:22px; overflow:hidden; border:1px solid var(--line);
+  }
+  .phone-bar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 16px 10px; font-size:0.7rem; color:var(--steel-dim); font-weight:700; letter-spacing:0.08em;
+  }
+  .phone-bar .dot{width:6px; height:6px; border-radius:50%; background:var(--ember);}
+  .phone-title{padding:0 16px 12px; font-size:1rem; font-weight:800; color:var(--white); letter-spacing:0.03em;}
+  .entry{
+    margin:0 12px 10px; padding:12px; background:var(--panel); border:1px solid var(--line); border-radius:10px;
+  }
+  .entry-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;}
+  .tag{
+    font-size:0.62rem; font-weight:800; letter-spacing:0.06em; text-transform:uppercase;
+    padding:3px 8px; border-radius:20px; color:var(--bg);
+  }
+  .tag.noise{background:#c85c4f;}
+  .tag.suspicious{background:#7d7ff0;}
+  .tag.damage{background:#3ecf7e;}
+  .tag.hazard{background:var(--ember);}
+  .entry-time{font-size:0.66rem; color:var(--steel-dim); font-family:monospace;}
+  .entry-desc{font-size:0.78rem; color:var(--steel); margin-bottom:6px;}
+  .entry-meta{display:flex; gap:10px; font-size:0.65rem; color:var(--steel-dim); align-items:center;}
+  .entry-meta span{display:flex; align-items:center; gap:4px;}
+  .thumbrow{display:flex; gap:6px; margin-top:8px;}
+  .thumb{width:34px; height:34px; border-radius:6px; background:linear-gradient(135deg,#2c2820,#191611); border:1px solid var(--line);}
+  .phone-navbar{
+    display:flex; justify-content:space-around; padding:10px 0 14px; border-top:1px solid var(--line); margin-top:6px;
+  }
+  .phone-navbar div{font-size:0.6rem; color:var(--steel-dim); text-align:center; font-weight:700; letter-spacing:0.04em;}
+  .phone-navbar div.active{color:var(--ember);}
+
+  /* ABOUT STRIP */
+  .about{padding:56px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); background:var(--bg-alt);}
+  .about .wrap{display:grid; gap:40px;}
+  @media(min-width:840px){ .about .wrap{grid-template-columns:1fr 1fr; align-items:center;} }
+  .about h2{font-size:1.6rem; margin-bottom:14px;}
+  .about p{color:var(--steel-dim); max-width:56ch;}
+  .statgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:20px;}
+  .stat{border:1px solid var(--line); padding:20px 16px; text-align:center; border-radius:4px;}
+  .stat b{display:block; font-size:1.7rem; color:var(--ember); font-weight:800; font-stretch:condensed;}
+  .stat span{font-size:0.72rem; color:var(--steel-dim); text-transform:uppercase; letter-spacing:0.06em;}
+
+  /* FEATURES */
+  .section{padding:88px 0;}
+  .section-head{max-width:640px; margin:0 auto 56px; text-align:center;}
+  .section-head h2{font-size:clamp(1.8rem,4vw,2.4rem); margin-bottom:14px;}
+  .section-head p{color:var(--steel-dim);}
+  .features{display:grid; gap:20px; grid-template-columns:repeat(auto-fit, minmax(250px,1fr));}
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:26px;
+    transition:border-color .15s, transform .15s;
+  }
+  .card:hover{border-color:var(--ember-dim); transform:translateY(-3px);}
+  .card .icon{
+    width:42px; height:42px; border-radius:8px; background:rgba(201,106,53,0.14);
+    display:flex; align-items:center; justify-content:center; margin-bottom:16px;
+    color:var(--ember); font-size:1.3rem; font-weight:900;
+  }
+  .card h3{font-size:1rem; margin-bottom:8px; letter-spacing:0.02em;}
+  .card p{font-size:0.88rem; color:var(--steel-dim);}
+
+  /* HOW IT WORKS */
+  .steps{
+    display:grid; gap:0; grid-template-columns:repeat(auto-fit, minmax(220px,1fr));
+    counter-reset: step;
+  }
+  .step{position:relative; padding:0 24px; border-left:1px solid var(--line);}
+  .step:first-child{border-left:none; padding-left:0;}
+  .step .num{
+    counter-increment:step; font-weight:800; font-stretch:condensed; font-size:2.6rem; color:transparent;
+    -webkit-text-stroke:1px var(--ember-dim); margin-bottom:8px; display:block;
+  }
+  .step h3{font-size:1rem; margin-bottom:8px;}
+  .step p{font-size:0.88rem; color:var(--steel-dim);}
+
+  /* CATEGORY TAGS SHOWCASE */
+  .cat-cloud{display:flex; flex-wrap:wrap; gap:10px; justify-content:center;}
+  .cat-chip{
+    border:1px solid var(--line); padding:8px 16px; border-radius:20px; font-size:0.8rem;
+    color:var(--steel); background:var(--panel); font-weight:600;
+  }
+
+  /* DOWNLOAD CTA */
+  .cta{
+    background:linear-gradient(160deg, var(--panel), var(--bg-alt));
+    border:1px solid var(--line); border-radius:10px; padding:56px 40px; text-align:center;
+    position:relative; overflow:hidden;
+  }
+  .cta::after{
+    content:""; position:absolute; width:340px; height:340px; border-radius:50%;
+    background:radial-gradient(circle, rgba(201,106,53,0.16), transparent 70%);
+    top:-140px; right:-100px;
+  }
+  .cta h2{font-size:clamp(1.6rem,3.6vw,2.2rem); margin-bottom:14px;}
+  .cta p{color:var(--steel-dim); max-width:48ch; margin:0 auto 30px;}
+  .cta-actions{display:flex; flex-wrap:wrap; gap:14px; justify-content:center;}
+  .fineprint{margin-top:22px; font-size:0.76rem; color:var(--steel-dim);}
+
+  /* FOOTER */
+  footer{border-top:1px solid var(--line); padding:40px 0; margin-top:20px;}
+  .foot-grid{display:flex; flex-wrap:wrap; gap:20px; align-items:center; justify-content:space-between;}
+  .foot-brand{display:flex; align-items:center; gap:10px; color:var(--steel-dim); font-size:0.85rem;}
+  .foot-links{display:flex; gap:24px; font-size:0.82rem; color:var(--steel-dim);}
+  .foot-links a:hover{color:var(--ember);}
+</style>
+</head>
+<body>
+
+<header>
+  <nav>
+    <a class="brand" href="#top">
+      <span class="mark">H</span>
+      <span>HARD LINE FORGE<small>Field Documentation Tools</small></span>
+    </a>
+    <div class="navlinks">
+      <a href="#features">Features</a>
+      <a href="#categories">Use Cases</a>
+      <a href="#how">How It Works</a>
+      <a href="#download">Download</a>
+    </div>
+    <a class="btn btn-primary navcta" href="#download">Get LALA</a>
+  </nav>
+</header>
+
+<main id="top">
+
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <div class="eyebrow">LALA Case Log · Android</div>
+        <h1>Document it. <br>Timestamp it. <span>Prove it.</span></h1>
+        <p class="lead">
+          LALA is a field case-logging app for people who are done letting things slide —
+          neighbors, HOA reps, property owners, and anyone who needs an evidence trail that
+          holds up. Snap it, geotag it, log it, and export a report in minutes.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#download">Download the APK</a>
+          <a class="btn btn-ghost" href="#features">See what it does</a>
+        </div>
+        <div class="hero-note">Built by <b>Hard Line Forge</b> · Android 8.0+ · Camera, GPS &amp; offline-first storage</div>
+      </div>
+
+      <div class="phone">
+        <div class="phone-screen">
+          <div class="phone-bar"><span>LALA</span><span class="dot"></span></div>
+          <div class="phone-title">Timeline</div>
+
+          <div class="entry">
+            <div class="entry-top">
+              <span class="tag hazard">Safety Hazard</span>
+              <span class="entry-time">07/18 · 9:42 PM</span>
+            </div>
+            <div class="entry-desc">Downed fence line near east gate, exposed wire.</div>
+            <div class="entry-meta">
+              <span>📍 42.31, -83.05</span>
+            </div>
+            <div class="thumbrow"><div class="thumb"></div><div class="thumb"></div></div>
+          </div>
+
+          <div class="entry">
+            <div class="entry-top">
+              <span class="tag suspicious">Suspicious Activity</span>
+              <span class="entry-time">07/17 · 11:05 PM</span>
+            </div>
+            <div class="entry-desc">Unknown vehicle idling on shared drive, plate captured.</div>
+            <div class="entry-meta"><span>📍 Geotagged</span></div>
+            <div class="thumbrow"><div class="thumb"></div></div>
+          </div>
+
+          <div class="entry">
+            <div class="entry-top">
+              <span class="tag noise">Noise</span>
+              <span class="entry-time">07/16 · 1:10 AM</span>
+            </div>
+            <div class="entry-desc">Third occurrence this month — audio clip attached.</div>
+          </div>
+
+          <div class="phone-navbar">
+            <div class="active">Timeline</div>
+            <div>Map</div>
+            <div>Media</div>
+            <div>Reports</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="about">
+    <div class="wrap">
+      <div>
+        <h2>Built for people who need the record to be undeniable</h2>
+        <p>
+          Hard Line Forge builds no-nonsense tools for the people stuck documenting reality —
+          rural landowners tracking trespassing and poaching, homeowners logging HOA and code
+          violations, and anyone tired of a verbal complaint going nowhere. LALA turns a phone
+          into a chain-of-custody-minded field log: every entry is timestamped and geotagged
+          the moment it's captured.
+        </p>
+      </div>
+      <div class="statgrid">
+        <div class="stat"><b>9+</b><span>Incident Categories</span></div>
+        <div class="stat"><b>PDF</b><span>&amp; CSV Export</span></div>
+        <div class="stat"><b>GPS</b><span>Auto Geotagging</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="features">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Everything you need to build the case</h2>
+        <p>From first photo to final report — LALA handles the whole chain of custody on your device.</p>
+      </div>
+      <div class="features">
+        <div class="card">
+          <div class="icon">📷</div>
+          <h3>Camera Capture + Geotag</h3>
+          <p>Snap photos or video straight from the app. Every capture is stamped with GPS coordinates and time automatically.</p>
+        </div>
+        <div class="card">
+          <div class="icon">🕒</div>
+          <h3>Timeline</h3>
+          <p>Every entry lands in a chronological log — searchable, filterable, and impossible to dispute later.</p>
+        </div>
+        <div class="card">
+          <div class="icon">🗺️</div>
+          <h3>Map View</h3>
+          <p>See every logged incident plotted geographically to spot patterns — repeat locations, hot spots, boundary lines.</p>
+        </div>
+        <div class="card">
+          <div class="icon">🎞️</div>
+          <h3>Media Gallery &amp; Filmstrip</h3>
+          <p>Review captured photos and video frame-by-frame with adjustable frame rate for close inspection.</p>
+        </div>
+        <div class="card">
+          <div class="icon">🏷️</div>
+          <h3>Custom Categories</h3>
+          <p>Tag entries by type — Noise, Suspicious Activity, Property Damage, HOA Violation, Poaching, and more — or build your own.</p>
+        </div>
+        <div class="card">
+          <div class="icon">📄</div>
+          <h3>PDF &amp; CSV Reports</h3>
+          <p>Generate a clean, shareable report in one tap — ready to hand to an HOA board, landlord, or law enforcement.</p>
+        </div>
+        <div class="card">
+          <div class="icon">🔎</div>
+          <h3>Full-Text Search</h3>
+          <p>Find any entry instantly by keyword, category, tag, or date range once the log starts growing.</p>
+        </div>
+        <div class="card">
+          <div class="icon">🌓</div>
+          <h3>Light &amp; Dark Themes</h3>
+          <p>Adjustable font size, accent color, and theme so the app works the way you need it, day or night.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="how" style="padding-top:0;">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>How it works</h2>
+        <p>Three steps between an incident and a report you can hand someone.</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <span class="num">01</span>
+          <h3>Capture</h3>
+          <p>Open LALA, snap a photo or video, and add a quick note. Location and timestamp are logged automatically.</p>
+        </div>
+        <div class="step">
+          <span class="num">02</span>
+          <h3>Organize</h3>
+          <p>Tag it by category, review it on the timeline or map, and keep building the record entry by entry.</p>
+        </div>
+        <div class="step">
+          <span class="num">03</span>
+          <h3>Export</h3>
+          <p>When it's time to act, export a polished PDF or CSV report — organized, dated, and ready to send.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="categories" style="padding-top:0;">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Made for real situations</h2>
+        <p>LALA ships with categories built around the incidents people actually need to document.</p>
+      </div>
+      <div class="cat-cloud">
+        <span class="cat-chip">Noise</span>
+        <span class="cat-chip">Suspicious Activity</span>
+        <span class="cat-chip">Property Damage</span>
+        <span class="cat-chip">Animal Issue</span>
+        <span class="cat-chip">Parking</span>
+        <span class="cat-chip">Trash / Yard</span>
+        <span class="cat-chip">HOA / Code Violation</span>
+        <span class="cat-chip">Safety Hazard</span>
+        <span class="cat-chip">Poaching / Wildlife</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="download" style="padding-top:0;">
+    <div class="wrap">
+      <div class="cta">
+        <h2>Start building your record today</h2>
+        <p>LALA runs fully on-device — your entries, photos, and reports stay in your control.</p>
+        <div class="cta-actions">
+          <a class="btn btn-primary" href="LALA_CaseLog.apk" download>Download LALA (.apk)</a>
+          <a class="btn btn-ghost" href="#features">Explore Features</a>
+        </div>
+        <div class="fineprint">Requires Android 8.0 (API 26) or newer · Camera &amp; location permissions used for evidence capture only.</div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap foot-grid">
+    <div class="foot-brand">
+      <span class="mark" style="width:24px;height:24px;font-size:0.75rem;">H</span>
+      <span>© 2026 Hard Line Forge. Built to hold the line.</span>
+    </div>
+    <div class="foot-links">
+      <a href="#features">Features</a>
+      <a href="#how">How It Works</a>
+      <a href="#download">Download</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
